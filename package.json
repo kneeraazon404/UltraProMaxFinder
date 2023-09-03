@@ -1,0 +1,29 @@
+{
+  "name": "profinder",
+  "version": "1.0.0",
+  "description": "linkedin profinder",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kneeraazon404/UltraProMaxFinder.git"
+  },
+  "author": "pramod",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kneeraazon404/UltraProMaxFinder/issues"
+  },
+  "homepage": "https://github.com/kneeraazon404/UltraProMaxFinder#readme",
+  "devDependencies": {
+    "electron": "^26.1.0"
+  },
+  "dependencies": {
+    "electron-dl": "^3.5.0",
+    "exceljs": "^4.3.0",
+    "playwright": "^1.37.1",
+    "xlsx": "^0.18.5"
+  }
+}
