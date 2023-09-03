@@ -25,6 +25,11 @@ const contentContainer = document.getElementById('mainBody');
    let body=parser.parseFromString(accountTemplate, 'text/html');
    let tableBody=body.querySelector('tbody');
     originalData= await window.electronAPI.readUsersData();
+    if(!originalData.length){
+      body.querySelector('#accountLists thead').innerHTML='No Accounts added';
+      body.querySelector('#download-excel').style.display='none';
+      
+    }
     data=originalData.map(user=>`<tr>
     <td>${user.username}</td>
     <td><button data-username=${user.username} class="${user.isScheduled?'scheduled schedule-button':'notScheduled schedule-button'}">${user.isScheduled?'scheduled':'Not Scheduled'}</button></td>
@@ -33,8 +38,11 @@ const contentContainer = document.getElementById('mainBody');
 
     tableBody.innerHTML=data;
     contentContainer.innerHTML = body.documentElement.outerHTML;
-    rpfData=await window.electronAPI.readExcelFile(originalData[0].username);
+    
+    rpfData=await window.electronAPI.readExcelFile(originalData[0]?.username);
     createRFPTable(rpfData)
+  
+    
   });
 
 //   const linkedInForm=document.getElementById()
@@ -80,7 +88,8 @@ const contentContainer = document.getElementById('mainBody');
    const tbody = document.createElement('tbody');
    tbody.textContent="Saved Records Not Found";
    table.appendChild(tbody);
-   if(!data)return;
+   console.log('fuck',!data.length);
+   if(!data.length)return;
    tbody.textContent='';
    const headers = Object.keys(data[0]);
    console.log(headers)

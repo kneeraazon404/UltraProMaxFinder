@@ -27,14 +27,11 @@ async function readTemplateFile(event, templateFileName) {
 
 const downloadFileFromUserData = async (event,mainWindow) => {
   dialog.showSaveDialog(mainWindow, {
-    defaultPath: path.join(app.getPath('downloads'), 'output.xlsx'), // Default download path
+    defaultPath: path.join(app.getPath('downloads'), 'output.xlsx'),
     filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
   }).then((result) => {
     if (!result.canceled) {
       const downloadPath = result.filePath;
-
-      // You can replace this with your own file download logic
-      // For example, here we're copying a sample file to the download location
       const sourceFilePath =  path.join(app.getPath('userData'), 'output.xlsx');;
       fssync.copyFileSync(sourceFilePath, downloadPath);
 
@@ -66,6 +63,7 @@ function getCredentials(event, credentials) {
   const { username, password } = credentials;
   // we need to render sub
   const userDataPath = app.getPath('userData');
+  console.log(userDataPath)
   const linkedInSessionPartitionName = `persist:${username}`;
   const linkedInSession = session.fromPartition(linkedInSessionPartitionName, {
     cache: path.join(userDataPath, username),
@@ -116,7 +114,7 @@ function getCredentials(event, credentials) {
 
   view.webContents.loadURL('https://linkedin.com')
   view.webContents.send('expose-variable', credentials);
-  view.webContents.openDevTools({ mode: 'detach' })
+  // view.webContents.openDevTools({ mode: 'detach' })
   view.webContents.on('close', () => {
     view = null;
 
@@ -266,20 +264,28 @@ async function submitProposals(proposals,session,headers){
 
 async function readUserData(event) {
   const parsedData = [];
+  let  rl ;
   const filePath = path.join(app.getPath('userData'), 'userInfo.json');
-  const rl = readline.createInterface({
-    input: fssync.createReadStream(filePath),
-    crlfDelay: Infinity,
-  });
+  try {
+    await fs.access(filePath, fs.constants.R_OK | fs.constants.W_OK);
+    rl= readline.createInterface({
+      input: fssync.createReadStream(filePath),
+      crlfDelay: Infinity,
+    });
 
-  for await (const line of rl) {
-    try {
-      const jsonObject = JSON.parse(line);
-      parsedData.push(jsonObject);
-    } catch (error) {
-      console.error('Error parsing JSON:', error);
+    for await (const line of rl) {
+    
+        const jsonObject = JSON.parse(line);
+        parsedData.push(jsonObject);
+     
     }
+
+  } catch (error) {
+    console.log(error)
   }
+
+
+
   return parsedData;
 
 
