@@ -57,7 +57,7 @@ function getCredentials(event, credentials,mainWindow,app) {
   
     view.webContents.loadURL('https://linkedin.com')
     view.webContents.send('expose-variable', credentials);
-    view.webContents.openDevTools({ mode: 'detach' })
+    // view.webContents.openDevTools({ mode: 'detach' })
     view.webContents.on('close', () => {
       view = null;
   

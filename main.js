@@ -9,7 +9,7 @@ const {getSavedTemplate,saveTemplateToFile}=require('./templateFunctions')
 const {getCredentials}=require('./getCredentials')
 const {extractProposals}=require('./proposals')
 const {readExcelFile}=require('./excelFunctions')
-const {scheduleDialog,scheduleTask}=require('./scheduleSettings');
+const {scheduleDialog,scheduleTask,removeSchedule}=require('./scheduleSettings');
 const { scheduler } = require('timers/promises');
 
 
@@ -130,6 +130,7 @@ async function readUserData(event) {
 
 app.whenReady().then(
  () => {
+    ipcMain.handle('removeSchedule',(event,username)=>removeSchedule(event,username,app))
     ipcMain.handle('scheduleTask',(event,data,username)=>scheduleTask(event,data,username,mainWindow,app))
     ipcMain.handle('scheduleSetting',(event,username)=>scheduleDialog(event,username,app,mainWindow))
     ipcMain.handle('readTemplateFromFile', readTemplateFile) // handler for html template

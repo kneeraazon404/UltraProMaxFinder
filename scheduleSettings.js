@@ -1,14 +1,12 @@
 const path = require('path');
 const fssync = require('fs');
 const fs = require('fs').promises;
-var cron = require('node-cron');
 
 
-
+let page;
 const {BrowserWindow } = require('electron');
-
 function scheduleDialog(event,username,app,mainWindow){
-   let page= new BrowserWindow({
+  page= new BrowserWindow({
         parent: mainWindow, modal: true, show: false, webPreferences: {
             preload:path.join(__dirname, 'schedulePreload.js')
         }
@@ -22,8 +20,14 @@ function scheduleDialog(event,username,app,mainWindow){
         // Handle the error if the file doesn't exist or is not valid JSON
         console.error(`Error reading file: ${err}`);
       }
-      page.webContents.send('getUsername',username,existingData[username])
+
+      page.webContents.on('dom-ready', () => {
+        page.webContents.send('getUsername',username,existingData[username])
+      })
+
+      
       page.loadFile(path.join(__dirname, 'schedule.html'))
+      // page.webContents.openDevTools({ mode: 'detach' })
 
       page.once('ready-to-show', () => {
         page.show()
@@ -31,11 +35,34 @@ function scheduleDialog(event,username,app,mainWindow){
 
   
 }
+function removeSchedule(event,username,app){
+  const scheduleFile = path.join(app.getPath('userData'),'schedules.json');
+  let existingData = {};
+  try {
+    const savedData = fssync.readFileSync(scheduleFile, 'utf8');
+    existingData = JSON.parse(savedData);
+  } catch (err) {
+    console.error(`Error reading file: ${err}`);
+  }
+  console.log(existingData)
+   console.log(username)
+  if (existingData.hasOwnProperty(username)) {
+    delete existingData[username];
+  }
+  try {
+    fssync.writeFileSync(scheduleFile, JSON.stringify(existingData, null, 2));
+    console.log(`Schedule data for ${username} removed successfully.`);
+    return 1;
+  } catch (err) {
+    console.error(`Error writing file: ${err}`);
+  }
+  
+}
 
 
-async function scheduleTask(event,data,username,mainWindow,app){
+ function scheduleTask(event,data,username,mainWindow,app){
+  console.log(data)
 
- // save the data with username as a key
  const scheduleFile = path.join(app.getPath('userData'),'schedules.json');
 let existingData = {};
 try {
@@ -45,6 +72,7 @@ try {
   // Handle the error if the file doesn't exist or is not valid JSON
   console.error(`Error reading file: ${err}`);
 }
+if(username)
 existingData[username]=data;
 try {
 
@@ -54,12 +82,15 @@ try {
   console.log('error');
   
 }
+if(page instanceof BrowserWindow)
+ page.close()
 
 
 }
 
 module.exports={
     scheduleDialog,
+    removeSchedule,
     scheduleTask
 }
 

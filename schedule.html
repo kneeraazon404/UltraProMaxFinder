@@ -2,34 +2,61 @@
 <html>
 <head>
     <title>Time and Start Date Form</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css">
 </head>
 <body>
-    <h2>Enter Time and Start Date</h2>
-    <form id="myForm">
-        <label for="timeInput">Start Time:</label>
-        <input type="time" id="timeInput" name="timeInput"><br><br>
+    <div class="container mt-5">
+        <h2 class="mb-4">Enter Time and Start Date</h2>
+        <form id="myForm">
+            <div class="mb-3">
+                <label for="timeInput" class="form-label">Start Time:</label>
+                <input type="time" class="form-control" id="timeInput" name="timeInput">
+            </div>
 
-        <label for="durationMinutes">Repeat Every:</label>
-        <input type="number" id="durationMinutes" name="durationMinutes" min="0" max="200"> minutes
-        <br><br>
+            <div class="mb-3">
+                <label for="durationMinutes" class="form-label">Repeat Every:</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="durationMinutes" name="durationMinutes" min="0" max="200">
+                    <span class="input-group-text">minutes</span>
+                </div>
+            </div>
 
-        <label for="startDateInput">Start Date:</label>
-        <input type="date" id="startDateInput" name="startDateInput"><br><br>
+            <div class="mb-3">
+                <label for="startDateInput" class="form-label">Start Date:</label>
+                <input type="date" class="form-control" id="startDateInput" name="startDateInput">
+            </div>
 
-        <input type="submit" value="Submit">
-    </form>
+            <div class="mb-3">
+                <input type="submit" class="btn btn-primary" value="Submit">
+                <button type="button" class="btn btn-danger" id="removeSchedule">Remove Schedule</button>
+            </div>
+        </form>
+    </div>
 
     <script>
         // Get a reference to the form
         var form = document.getElementById('myForm');
+        let removeSchedule=document.getElementById('removeSchedule');
 
         var userName;
-    window.scheduleApi.receiveUsername((_event,username,data)=>{
-        userName=username;
-        document.getElementById('timeInput').value = data.timeValue;
-    document.getElementById('startDateInput').value = data.startDateValue;
-    document.getElementById('durationMinutes').value = data.durationMinutesValue
-    })
+            window.scheduleApi.receiveUsername((_event,username,data)=>{
+            console.log("this is called")
+            userName=username;
+            document.getElementById('timeInput').value = data.timeValue;
+            document.getElementById('startDateInput').value = data.startDateValue;
+            document.getElementById('durationMinutes').value = data.durationMinutesValue
+        })
+        removeSchedule.addEventListener('click',async (e)=>{
+                       console.log("removing schedule",userName);
+
+            let isScheduleRemoved=await window.scheduleApi.removeSchedule(userName);
+            if(isScheduleRemoved){
+                alert('removed saved schedule');
+                document.getElementById('timeInput').value = '';
+            document.getElementById('startDateInput').value = ''
+            document.getElementById('durationMinutes').value = ''
+            }
+        });
 
         // Add an event listener to the form for form submission
         form.addEventListener('submit', function (e) {
@@ -38,15 +65,8 @@
             // Get the values entered by the user
             var timeValue = document.getElementById('timeInput').value;
             var startDateValue = document.getElementById('startDateInput').value;
-            var durationMinutesValue= parseInt(document.getElementById('durationMinutes').value, 10) 
-            window.scheduleApi.scheduleTask({timeValue,startDateValue,durationMinutesValue},userName)
-            // You can use these values as needed, for example, send them to a server or perform other actions
-            console.log(userName)
-            console.log('Time:', timeValue);
-            console.log('Start Date:', startDateValue);
-
-            // Reset the form or perform any additional actions as needed
-            // form.reset();
+            var durationMinutesValue = parseInt(document.getElementById('durationMinutes').value, 10);
+            window.scheduleApi.scheduleTask({timeValue, startDateValue, durationMinutesValue }, userName);
         });
     </script>
 </body>
