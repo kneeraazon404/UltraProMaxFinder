@@ -5,6 +5,7 @@
       <tr>
         <th>Name</th>
         <th>Action</th>
+        <th>Settings</th>
       </tr>
     </thead>
     <tbody>
@@ -18,9 +19,16 @@
   </table>
 </div>
 
+<button type="button" class="btn btn-outline-info" id="download-excel" >Download Excel</button>
 
-<footer>
-  <button type="button" class="btn btn-outline-info" id="download-excel" >Download Excel</button>
 
-</footer>
+  <form id="textInputForm">
+    <div class="form-group">
+        <label for="text">Text:</label>
+        <textarea class="form-control" id="templatetext" rows="30" cols="30" aria-label="With textarea" placeholder="Enter template"></textarea> 
+    </div>
+    <button type="submit" class="btn btn-primary">Save Template</button>
+</form>
+  
+
 </div>

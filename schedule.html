@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Time and Start Date Form</title>
+</head>
+<body>
+    <h2>Enter Time and Start Date</h2>
+    <form id="myForm">
+        <label for="timeInput">Start Time:</label>
+        <input type="time" id="timeInput" name="timeInput"><br><br>
+
+        <label for="durationMinutes">Repeat Every:</label>
+        <input type="number" id="durationMinutes" name="durationMinutes" min="0" max="200"> minutes
+        <br><br>
+
+        <label for="startDateInput">Start Date:</label>
+        <input type="date" id="startDateInput" name="startDateInput"><br><br>
+
+        <input type="submit" value="Submit">
+    </form>
+
+    <script>
+        // Get a reference to the form
+        var form = document.getElementById('myForm');
+
+        var userName;
+    window.scheduleApi.receiveUsername((_event,username,data)=>{
+        userName=username;
+        document.getElementById('timeInput').value = data.timeValue;
+    document.getElementById('startDateInput').value = data.startDateValue;
+    document.getElementById('durationMinutes').value = data.durationMinutesValue
+    })
+
+        // Add an event listener to the form for form submission
+        form.addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent the default form submission behavior
+            
+            // Get the values entered by the user
+            var timeValue = document.getElementById('timeInput').value;
+            var startDateValue = document.getElementById('startDateInput').value;
+            var durationMinutesValue= parseInt(document.getElementById('durationMinutes').value, 10) 
+            window.scheduleApi.scheduleTask({timeValue,startDateValue,durationMinutesValue},userName)
+            // You can use these values as needed, for example, send them to a server or perform other actions
+            console.log(userName)
+            console.log('Time:', timeValue);
+            console.log('Start Date:', startDateValue);
+
+            // Reset the form or perform any additional actions as needed
+            // form.reset();
+        });
+    </script>
+</body>
+</html>
