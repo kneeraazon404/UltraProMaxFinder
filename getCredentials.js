@@ -1,5 +1,7 @@
 
 const path = require('path');
+const fs = require('fs').promises;
+
 const { BrowserView, session,} = require('electron');
 
 function getCredentials(event, credentials,mainWindow,app) {
@@ -38,20 +40,22 @@ function getCredentials(event, credentials,mainWindow,app) {
   
   
     view.webContents.on("did-navigate", async (event, url) => {
-      if (url.includes('feed')) {
+      console.log(url)
+      
         let hasAuthKey = await view.webContents.executeJavaScript("localStorage.getItem('C_C_M') !== null");
         if (hasAuthKey) {
+          console.log(username);
           saveToDisk({ username, isScheduled: true },app);
           setTimeout(() => {
             mainWindow.removeBrowserView(view);
           }, 10000);
         }
-      }
+      
     })
   
     view.webContents.loadURL('https://linkedin.com')
     view.webContents.send('expose-variable', credentials);
-    // view.webContents.openDevTools({ mode: 'detach' })
+    view.webContents.openDevTools({ mode: 'detach' })
     view.webContents.on('close', () => {
       view = null;
   
@@ -60,6 +64,7 @@ function getCredentials(event, credentials,mainWindow,app) {
   }
 
   function saveToDisk(data,app) {
+    console.log(data);
     const filePath = path.join(app.getPath('userData'), 'userInfo.json');
     // will call this upon successful login in linkedin account
     try {
@@ -67,6 +72,7 @@ function getCredentials(event, credentials,mainWindow,app) {
       fs.appendFile(filePath, jsonData + '\n');
     }
     catch (error) {
+      console.log(error)
   
     }
   }

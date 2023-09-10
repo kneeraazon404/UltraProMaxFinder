@@ -9,7 +9,8 @@ const {getSavedTemplate,saveTemplateToFile}=require('./templateFunctions')
 const {getCredentials}=require('./getCredentials')
 const {extractProposals}=require('./proposals')
 const {readExcelFile}=require('./excelFunctions')
-const {scheduleDialog,scheduleTask}=require('./scheduleSettings')
+const {scheduleDialog,scheduleTask}=require('./scheduleSettings');
+const { scheduler } = require('timers/promises');
 
 
 let mainWindow;
@@ -128,8 +129,7 @@ async function readUserData(event) {
 
 
 app.whenReady().then(
-  () => {
-    // createWindow();
+ () => {
     ipcMain.handle('scheduleTask',(event,data,username)=>scheduleTask(event,data,username,mainWindow,app))
     ipcMain.handle('scheduleSetting',(event,username)=>scheduleDialog(event,username,app,mainWindow))
     ipcMain.handle('readTemplateFromFile', readTemplateFile) // handler for html template
@@ -160,8 +160,7 @@ app.whenReady().then(
   });
 
 
-  const scheduler = new ToadScheduler()
-  const scheduleFile = path.join(app.getPath('userData'),'schedules.json');
+  
 
 let existingData = {};
 try {
@@ -171,15 +170,22 @@ try {
   // Handle the error if the file doesn't exist or is not valid JSON
   console.error(`Error reading file: ${err}`);
 }
-Object.keys(existingData).forEach(key => {
-  let username=key;
-  let data=existingData[key];
-  console.log(existingData)
-  const task=new AsyncTask(username,(_)=>extractRequestForProposals(_,username,app,mainWindow).then((result) => { /* continue the promise chain */ }) ,
-  (err) => {console.log(err) })
-  const job = new SimpleIntervalJob({ minutes:data.durationMinutesValue,}, task)
-  scheduler.addSimpleIntervalJob(job)
-});
+let scheduler;
+let scheduleFile;
+if(existingData){
+  scheduler= new ToadScheduler()
+  scheduleFile = path.join(app.getPath('userData'),'schedules.json');
+  Object.keys(existingData).forEach(key => {
+    let username=key;
+    let data=existingData[key];
+    console.log(existingData)
+    const task=new AsyncTask(username,(_)=>extractRequestForProposals(_,username,app,mainWindow).then((result) => { /* continue the promise chain */ }) ,
+    (err) => {console.log(err) })
+    const job = new SimpleIntervalJob({ minutes:data.durationMinutesValue,}, task)
+    scheduler.addSimpleIntervalJob(job)
+  });
+}
+
 
 
 
@@ -195,10 +201,31 @@ Object.keys(existingData).forEach(key => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+  if(scheduler instanceof ToadScheduler)
   scheduler.stop()
 
 })
 
+
+function createRequiredFiles(app){
+
+  const fileNames=['userInfo.json','output.xlsx','schedules.json']
+  const directoryPath=app.getPath('userData');
+  
+fileNames.forEach((fileName) => {
+  const filePath = `${directoryPath}/${fileName}`;
+  console.log(filePath)
+
+  fssync.writeFileSync(filePath, '', (err) => {
+    if (err) {
+      console.error(`Error creating ${filePath}: ${err}`);
+    } else {
+      console.log(`${filePath} created successfully.`);
+    }
+  });
+});
+
+}
 
 
 

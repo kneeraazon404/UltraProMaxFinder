@@ -135,7 +135,7 @@ async function getAccountList() {
   let  proposalTemplate=body.querySelector('#templatetext');
   
   let text=await window.electronAPI.readTemplateText();
-  if(text.length){
+  if(text?.length){
     console.log(proposalTemplate)
     proposalTemplate.innerHTML=text;
   }
