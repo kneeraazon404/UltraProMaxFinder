@@ -161,7 +161,8 @@ app.whenReady().then(
 
 
   
-
+let scheduleFile;
+scheduleFile = path.join(app.getPath('userData'),'schedules.json');
 let existingData = {};
 try {
   const savedData = fssync.readFileSync(scheduleFile, 'utf8');
@@ -171,10 +172,8 @@ try {
   console.error(`Error reading file: ${err}`);
 }
 let scheduler;
-let scheduleFile;
 if(existingData){
   scheduler= new ToadScheduler()
-  scheduleFile = path.join(app.getPath('userData'),'schedules.json');
   Object.keys(existingData).forEach(key => {
     let username=key;
     let data=existingData[key];

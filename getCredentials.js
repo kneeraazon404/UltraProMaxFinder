@@ -1,6 +1,8 @@
 
 const path = require('path');
 const fs = require('fs').promises;
+const fssync = require('fs');
+
 
 const { BrowserView, session,} = require('electron');
 
@@ -63,19 +65,43 @@ function getCredentials(event, credentials,mainWindow,app) {
   
   }
 
-  function saveToDisk(data,app) {
-    console.log(data);
-    const filePath = path.join(app.getPath('userData'), 'userInfo.json');
-    // will call this upon successful login in linkedin account
-    try {
-      let jsonData = JSON.stringify(data);
-      fs.appendFile(filePath, jsonData + '\n');
-    }
-    catch (error) {
-      console.log(error)
+
+function saveToDisk(data, app) {
+  console.log(data);
+
+  const filePath = path.join(app.getPath('userData'), 'userInfo.json');
   
+  try {
+    // Read the existing data from the file, if any
+    let existingData = [];
+    if (fssync.existsSync(filePath)) {
+      const fileContent = fssync.readFileSync(filePath, 'utf8');
+      existingData = fileContent.split('\n').filter(Boolean).map(JSON.parse);
     }
+
+    // Check if the new data already exists in the file
+    const isDataAlreadySaved = existingData.some(existingItem =>
+      JSON.stringify(existingItem) === JSON.stringify(data)
+    );
+
+    if (isDataAlreadySaved) {
+      console.log('Data already exists in the file. Not saving again.');
+    } else {
+      // Append the new data to the file
+      fssync.appendFile(filePath, JSON.stringify(data) + '\n', (err) => {
+        if (err) {
+          console.error('Error saving data to disk:', err);
+        } else {
+          console.log('Data saved to disk successfully.');
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error saving data to disk:', error);
   }
+}
+
+
 
 
   module.exports={
