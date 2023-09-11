@@ -130,6 +130,7 @@ async function readUserData(event) {
 
 app.whenReady().then(
  () => {
+  createRequiredFiles(app)
     ipcMain.handle('removeSchedule',(event,username)=>removeSchedule(event,username,app))
     ipcMain.handle('scheduleTask',(event,data,username)=>scheduleTask(event,data,username,mainWindow,app))
     ipcMain.handle('scheduleSetting',(event,username)=>scheduleDialog(event,username,app,mainWindow))
@@ -170,7 +171,7 @@ try {
   existingData = JSON.parse(savedData);
 } catch (err) {
   // Handle the error if the file doesn't exist or is not valid JSON
-  console.error(`Error reading file: ${err}`);
+  console.error(`Error reading file: ${err} ${scheduleFile}`);
 }
 let scheduler;
 if(existingData){
@@ -215,7 +216,7 @@ function createRequiredFiles(app){
 fileNames.forEach((fileName) => {
   const filePath = `${directoryPath}/${fileName}`;
   console.log(filePath)
-
+  if (!fssync.existsSync(filePath)) {
   fssync.writeFileSync(filePath, '', (err) => {
     if (err) {
       console.error(`Error creating ${filePath}: ${err}`);
@@ -223,6 +224,7 @@ fileNames.forEach((fileName) => {
       console.log(`${filePath} created successfully.`);
     }
   });
+}
 });
 
 }
