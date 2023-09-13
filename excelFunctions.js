@@ -26,6 +26,7 @@ async function readExcelFile(event,username,app){
   
   
   async function saveToExcel(data,pagename,app){
+
     const userDataPath = app.getPath('userData');
     const filePath = path.join(userDataPath,'output.xlsx'); 
     let workbook;
@@ -40,7 +41,7 @@ async function readExcelFile(event,username,app){
       worksheet = workbook.addWorksheet(pagename);
     }
     const headerRow = Object.keys(data[0]);
-    if (worksheet.getRow(2).values.length === 0||worksheet.getRow(1).values.length === 0) {
+    if (worksheet.actualRowCount === 0) {
       worksheet.addRow(headerRow);
     }
     data.forEach((object) => {

@@ -7,6 +7,8 @@ const accountLink = document.getElementById('account_page');
 const accountListPage = document.getElementById('accountList_page');
 const messagesLink = document.getElementById('messages-link');
 const contentContainer = document.getElementById('mainBody');
+const proposalPage=document.getElementById('proposal_page');
+// const settingsPage=document.getElementById('settings_page');
 
 
 
@@ -17,6 +19,22 @@ document.addEventListener('DOMContentLoaded', getAccountList)
 accountLink.addEventListener('click', async () => {
   const accountTemplate = await window.electronAPI.readTemplate('templates/account.html');
   contentContainer.innerHTML = accountTemplate;
+});
+// settingsPage.addEventListener('click', async () => {
+//   const settingsTemplate = await window.electronAPI.readTemplate('templates/settings.html');
+//   contentContainer.innerHTML = settingsTemplate;
+// });
+
+proposalPage.addEventListener('click', async () => {
+  const proposalTemplate = await window.electronAPI.readTemplate('templates/proposal.html');
+  contentContainer.innerHTML = proposalTemplate;
+  let  templateInput=document.querySelector('#savedTemplate');
+  
+  let text=await window.electronAPI.readTemplateText();
+  if(text?.length){
+    console.log(proposalTemplate)
+    templateInput.innerHTML=text;
+  }
 });
 
 accountListPage.addEventListener('click', getAccountList);
@@ -132,13 +150,6 @@ async function getAccountList() {
   console.log(body)
 
   let tableBody = body.querySelector('tbody');
-  let  proposalTemplate=body.querySelector('#templatetext');
-  
-  let text=await window.electronAPI.readTemplateText();
-  if(text?.length){
-    console.log(proposalTemplate)
-    proposalTemplate.innerHTML=text;
-  }
  
 
   originalData = await window.electronAPI.readUsersData();
@@ -148,7 +159,7 @@ async function getAccountList() {
   
   data = originalData.map(user => `<tr>
   <td data-username=${user.username}>${user.username}</td>
-  <td><button data-username=${user.username} class="${user.isScheduled ? 'scheduled schedule-button' : 'notScheduled schedule-button'}">${user.isScheduled ? 'scheduled' : 'Not Scheduled'}</button></td>
+  <td><button data-username=${user.username} class="${user.isScheduled ? 'scheduled schedule-button' : 'notScheduled schedule-button'}">${user.isScheduled ? 'Test Now' : 'Not Scheduled'}</button></td>
   <td><button class='settingButton' data-username=${user.username}><i class="material-icons small">
   settings
   </i></button></td>

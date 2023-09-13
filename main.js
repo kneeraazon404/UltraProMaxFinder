@@ -10,9 +10,9 @@ const {getCredentials}=require('./getCredentials')
 const {extractProposals}=require('./proposals')
 const {readExcelFile}=require('./excelFunctions')
 const {scheduleDialog,scheduleTask,removeSchedule}=require('./scheduleSettings');
-const { scheduler } = require('timers/promises');
+// const { scheduler } = require('timers/promises');
 
-
+let scheduler;
 let mainWindow;
 let width;
 let height;
@@ -162,7 +162,7 @@ app.whenReady().then(
   });
 
 
-  
+
 let scheduleFile;
 scheduleFile = path.join(app.getPath('userData'),'schedules.json');
 let existingData = {};
@@ -173,7 +173,7 @@ try {
   // Handle the error if the file doesn't exist or is not valid JSON
   console.error(`Error reading file: ${err} ${scheduleFile}`);
 }
-let scheduler;
+
 if(existingData){
   scheduler= new ToadScheduler()
   Object.keys(existingData).forEach(key => {
@@ -210,7 +210,7 @@ app.on('window-all-closed', () => {
 
 function createRequiredFiles(app){
 
-  const fileNames=['userInfo.json','output.xlsx','schedules.json']
+  const fileNames=['userInfo.json','schedules.json']
   const directoryPath=app.getPath('userData');
   
 fileNames.forEach((fileName) => {

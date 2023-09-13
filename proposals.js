@@ -11,6 +11,9 @@ function extractProposals(data,username,page,linkedInSession,headers,app,mainWin
     proposals.forEach(proposal => {
       let jobTitle=proposal.detailViewSectionsResolutionResults.filter((item)=>item.header?.$type=='com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text
       let jobCreatedDate=proposal.detailViewSectionsResolutionResults.filter((item)=>item.header?.$type=='com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.insight?.text
+
+      jobCreatedDate=parseRelativeTime(jobCreatedDate)
+
   
       let jobProvider=proposal.detailViewSectionsResolutionResults.filter((item)=>item.creatorInformation?.$type=='com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup.title?.text;
       let jobProviderDesignation=proposal.detailViewSectionsResolutionResults.filter((item)=>item.creatorInformation?.$type=='com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup.subtitle?.text;
@@ -92,6 +95,42 @@ function extractProposals(data,username,page,linkedInSession,headers,app,mainWin
       
     });
   }
+
+
+  function parseRelativeTime(relativeTime) {
+    const match = relativeTime.match(/(\d+)\s*(\w+)\s+ago/);
+  
+    if (!match) {
+      return null; // Invalid format
+    }
+  
+    const amount = parseInt(match[1]);
+    const unit = match[2];
+  
+    const now = new Date();
+    let pastDate = new Date(now);
+  
+    if (unit === 'm') {
+      pastDate.setMinutes(now.getMinutes() - amount);
+    } else if (unit === 'h') {
+      pastDate.setHours(now.getHours() - amount);
+    } else if (unit === 'd') {
+      pastDate.setDate(now.getDate() - amount);
+    } else if (unit === 'w') {
+      pastDate.setDate(now.getDate() - amount * 7);
+    } else if (unit === 'M') {
+      pastDate.setMonth(now.getMonth() - amount);
+    } else if (unit === 'y') {
+      pastDate.setFullYear(now.getFullYear() - amount);
+    } else {
+      return null; // Unsupported unit
+    }
+  
+    return pastDate;
+  }
+  
+
+  
 
 
   module.exports={

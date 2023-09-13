@@ -1,0 +1,64 @@
+<div class="container mt-5">
+        <h2 class="mb-4">Enter Time and Start Date</h2>
+        <form id="myForm">
+            <div class="mb-3">
+                <label for="timeInput" class="form-label">Start Time:</label>
+                <input type="time" class="form-control" id="timeInput" name="timeInput">
+            </div>
+
+            <div class="mb-3">
+                <label for="durationMinutes" class="form-label">Repeat Every:</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="durationMinutes" name="durationMinutes" min="0" max="200">
+                    <span class="input-group-text">minutes</span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="startDateInput" class="form-label">Start Date:</label>
+                <input type="date" class="form-control" id="startDateInput" name="startDateInput">
+            </div>
+
+            <div class="mb-3">
+                <input type="submit" class="btn btn-primary" value="Submit">
+                <button type="button" class="btn btn-danger" id="removeSchedule">Remove Schedule</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Get a reference to the form
+        var form = document.getElementById('myForm');
+        let removeSchedule=document.getElementById('removeSchedule');
+
+        var userName;
+            window.scheduleApi.receiveUsername((_event,username,data)=>{
+            console.log("this is called")
+            userName=username;
+            document.getElementById('timeInput').value = data.timeValue;
+            document.getElementById('startDateInput').value = data.startDateValue;
+            document.getElementById('durationMinutes').value = data.durationMinutesValue
+        })
+        removeSchedule.addEventListener('click',async (e)=>{
+                       console.log("removing schedule",userName);
+
+            let isScheduleRemoved=await window.scheduleApi.removeSchedule(userName);
+            if(isScheduleRemoved){
+                alert('removed saved schedule');
+                document.getElementById('timeInput').value = '';
+            document.getElementById('startDateInput').value = ''
+            document.getElementById('durationMinutes').value = ''
+            }
+        });
+
+        // Add an event listener to the form for form submission
+        form.addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent the default form submission behavior
+            
+            // Get the values entered by the user
+            var timeValue = document.getElementById('timeInput').value;
+            var startDateValue = document.getElementById('startDateInput').value;
+            var durationMinutesValue = parseInt(document.getElementById('durationMinutes').value, 10);
+            window.scheduleApi.scheduleTask({timeValue, startDateValue, durationMinutesValue }, userName);
+        });
+    </script>
