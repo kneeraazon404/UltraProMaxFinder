@@ -61,7 +61,6 @@ function removeSchedule(event,username,app){
 
 
  function scheduleTask(event,data,username,mainWindow,app){
-  console.log(data)
 
  const scheduleFile = path.join(app.getPath('userData'),'schedules.json');
 let existingData = {};
@@ -83,9 +82,7 @@ try {
   
 }
 if(page instanceof BrowserWindow)
- page.close()
-
-
+ page.close();
 }
 
 module.exports={

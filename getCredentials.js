@@ -67,7 +67,6 @@ function getCredentials(event, credentials,mainWindow,app) {
 
 
 function saveToDisk(data, app) {
-  console.log(data);
 
   const filePath = path.join(app.getPath('userData'), 'userInfo.json');
   

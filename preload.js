@@ -1,4 +1,5 @@
-const { contextBridge, ipcRenderer,shell } = require('electron')
+const { contextBridge, ipcRenderer,shell } = require('electron');
+const { file } = require('googleapis/build/src/apis/file');
 
 contextBridge.exposeInMainWorld('electronAPI', {
 readTemplate: (filename) => ipcRenderer.invoke('readTemplateFromFile',filename),
@@ -9,8 +10,8 @@ sendRFPtoClient:(callback)=>ipcRenderer.on('rfpCurrent',callback),
 readExcelFile:(username)=>ipcRenderer.invoke('read-excel-file',username),
 downloadExcelFile:(username)=>ipcRenderer.send('download-excel',username),
 fileDownloaded:(callback)=>ipcRenderer.on('download-complete',callback),
-saveTemplate:(data)=>ipcRenderer.invoke('saveTemplateToFile',data),
-readTemplateText:()=>ipcRenderer.invoke('readProposalTemplate',),
+saveTemplate:(data,filename='template.txt')=>ipcRenderer.invoke('saveTemplateToFile',data,filename),
+readTemplateText:(filename='template.txt')=>ipcRenderer.invoke('readProposalTemplate',filename),
 scheduleSetting:(username)=>ipcRenderer.invoke('scheduleSetting',username),
 
 

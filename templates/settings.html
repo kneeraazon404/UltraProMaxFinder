@@ -18,6 +18,10 @@
                 <label for="startDateInput" class="form-label">Start Date:</label>
                 <input type="date" class="form-control" id="startDateInput" name="startDateInput">
             </div>
+            <div class="mb-3">
+                <label for="endDateInput" class="form-label">End Date:</label>
+                <input type="date" class="form-control" id="endDateInput" name="endDateInput">
+            </div>
 
             <div class="mb-3">
                 <input type="submit" class="btn btn-primary" value="Submit">
@@ -58,7 +62,8 @@
             // Get the values entered by the user
             var timeValue = document.getElementById('timeInput').value;
             var startDateValue = document.getElementById('startDateInput').value;
+            var endDateValue = document.getElementById('endDateInput').value;
             var durationMinutesValue = parseInt(document.getElementById('durationMinutes').value, 10);
-            window.scheduleApi.scheduleTask({timeValue, startDateValue, durationMinutesValue }, userName);
+            window.scheduleApi.scheduleTask({timeValue, startDateValue, endDateValue,durationMinutesValue },userName);
         });
     </script>

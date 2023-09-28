@@ -1,12 +1,17 @@
 const { app, BrowserWindow, ipcMain, session,dialog } = require('electron');
 const fs = require('fs').promises;
 const { ToadScheduler, SimpleIntervalJob, AsyncTask } = require('toad-scheduler')
+const schedule = require('node-schedule');
+const chokidar = require('chokidar');
+
+
 
 const fssync = require('fs');
 const path = require('path');
 const readline = require('readline');
 const {getSavedTemplate,saveTemplateToFile}=require('./templateFunctions')
 const {getCredentials}=require('./getCredentials')
+const {readDataFromGoogleSheet} = require('./googleDocsConnections')
 const {extractProposals}=require('./proposals')
 const {readExcelFile}=require('./excelFunctions')
 const {scheduleDialog,scheduleTask,removeSchedule}=require('./scheduleSettings');
@@ -24,8 +29,8 @@ async function readTemplateFile(event, templateFileName) {
 }
 
 
-async function readProposalTemplate(event) { /// for reading proposal template from file
- return getSavedTemplate(app)
+async function readProposalTemplate(event,filename='template.txt') { /// for reading proposal template from file
+ return getSavedTemplate(app,filename)
 }
 
 
@@ -62,9 +67,11 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
   // console.log(await linkedInSession.cookies.get({}))
   const rfpPage = new BrowserWindow({
     parent: mainWindow, modal: true, show: false, webPreferences: {
-      partition: linkedInSessionPartitionName
+      partition: linkedInSessionPartitionName,
+      devTools:true,
     }
   })
+  rfpPage.webContents.openDevTools({mode:'detach'})
   rfpPage.loadURL('https://www.linkedin.com/service-marketplace/provider/requests')
   rfpPage.once('ready-to-show', () => {
     rfpPage.show()
@@ -130,15 +137,24 @@ async function readUserData(event) {
 
 app.whenReady().then(
  () => {
+
+  chokidar.watch(path.join(app.getPath('userData'),'*.txt', '*.json')).on('all', (event, path) => {
+    console.log('this is good')
+    mainWindow.webContents.reload();
+  });
+
+  //   writeData().then(out=>console.log(out)).catch(e=>console.log(e));
+ 
+  // die;
   createRequiredFiles(app)
     ipcMain.handle('removeSchedule',(event,username)=>removeSchedule(event,username,app))
     ipcMain.handle('scheduleTask',(event,data,username)=>scheduleTask(event,data,username,mainWindow,app))
     ipcMain.handle('scheduleSetting',(event,username)=>scheduleDialog(event,username,app,mainWindow))
     ipcMain.handle('readTemplateFromFile', readTemplateFile) // handler for html template
-    ipcMain.handle('read-excel-file',(event,username)=>readExcelFile(event,username,app))
+    ipcMain.handle('read-excel-file',(event,username)=>readDataFromGoogleSheet(event,username,app))
     ipcMain.handle('readUsersData', readUserData)
     ipcMain.on('send-credentials',(event,credentials)=> getCredentials(event,credentials,mainWindow,app))
-    ipcMain.handle('saveTemplateToFile',(event,data)=>saveTemplateToFile(event,data,app))
+    ipcMain.handle('saveTemplateToFile',(event,data,filename)=>saveTemplateToFile(event,data,app,filename))
     ipcMain.handle('readProposalTemplate', readProposalTemplate)
 
     const { screen } = require('electron')
@@ -158,7 +174,7 @@ app.whenReady().then(
     ipcMain.handle('getProposals',(event,username)=> extractRequestForProposals(event,username,app,mainWindow))
     mainWindow.loadFile('index.html');
     ipcMain.on('download-excel', (event,username) => {
-      downloadFileFromUserData(event,mainWindow);
+      downloadFileFromUserData(event,mainWindow,username,app);
   });
 
 
@@ -175,15 +191,30 @@ try {
 }
 
 if(existingData){
-  scheduler= new ToadScheduler()
+  // scheduler= new ToadScheduler()
   Object.keys(existingData).forEach(key => {
     let username=key;
     let data=existingData[key];
-    console.log(existingData)
-    const task=new AsyncTask(username,(_)=>extractRequestForProposals(_,username,app,mainWindow).then((result) => { /* continue the promise chain */ }) ,
-    (err) => {console.log(err) })
-    const job = new SimpleIntervalJob({ minutes:data.durationMinutesValue,}, task)
-    scheduler.addSimpleIntervalJob(job)
+    console.log(data)
+    let startDateTime = new Date(`${data.startDateValue}T${data.timeValue}:00`);
+    let endDateTime = new Date(data.endDateValue);
+    const now = new Date();
+    console.log(startDateTime)
+    console.log(now)
+    if (startDateTime < now) {
+    startDateTime = new Date(now.getTime() + 120000); 
+  }
+    
+    // endDateTime.setMinutes(startDateTime.getMinutes() + data.durationMinutesValue);
+    // const repeatInterval = `*/${data.durationMinutesValue} * * * *`; // Repeat every specified duration
+
+    // console.log(startDateTime)
+    // const rule = new schedule.RecurrenceRule();
+    // rule.minute=data.durationMinutesValue;
+    const job=schedule.scheduleJob({ start: startDateTime, end: endDateTime==''?undefined:endDateTime, rule: `*/${data.durationMinutesValue} * * * *` },(_)=>extractRequestForProposals(_,username,app,mainWindow))
+    console.log(job.nextInvocation())
+    // const job = new SimpleIntervalJob({ minutes:,}, task)
+    // scheduler.addSimpleIntervalJob(job)
   });
 }
 
@@ -196,6 +227,8 @@ if(existingData){
   }
 
 );
+
+
 
 
 

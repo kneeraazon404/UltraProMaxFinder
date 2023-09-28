@@ -4,9 +4,9 @@ const path = require('path');
 
 
 
-function getSavedTemplate(app){
+function getSavedTemplate(app,filename='template.txt'){
     let data;
-   const filePath = path.join(app.getPath('userData'), 'template.txt');
+   const filePath = path.join(app.getPath('userData'), filename);
    try {
      data = fssync.readFileSync(filePath,'utf-8');
    } catch (error) {
@@ -17,8 +17,8 @@ function getSavedTemplate(app){
  }
  
  
- async function saveTemplateToFile(event,data,app){
-   const filePath = path.join(app.getPath('userData'), 'template.txt');
+ async function saveTemplateToFile(event,data,app,filename='template.txt'){
+   const filePath = path.join(app.getPath('userData'), filename);
    let success=true;
    try {
      await fs.writeFile(filePath, data);
@@ -29,6 +29,12 @@ function getSavedTemplate(app){
    }
    return success;
  }
+
+
+
+
+
+
 
   
  module.exports={

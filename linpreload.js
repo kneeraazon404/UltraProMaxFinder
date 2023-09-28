@@ -17,7 +17,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const usernameInputField=document.querySelector('input[autocomplete="username"]');
   const passwordInputField=document.querySelector('input[autocomplete="current-password"]');
   const submitButton=document.querySelector('button[data-id="sign-in-form__submit-btn"]')
-  console.log(credentials);
   if(usernameInputField)  
     usernameInputField.value=credentials.username;
   if(passwordInputField)  

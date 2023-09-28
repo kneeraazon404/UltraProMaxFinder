@@ -1,6 +1,6 @@
-const {saveToExcel}=require('./excelFunctions')
+// const {saveToExcel}=require('./excelFunctions')
 const {getSavedTemplate}=require('./templateFunctions')
-
+const {writeDataToGoogleSheet}=require('./googleDocsConnections');
 
 function extractProposals(data,username,page,linkedInSession,headers,app,mainWindow){
 
@@ -26,14 +26,14 @@ function extractProposals(data,username,page,linkedInSession,headers,app,mainWin
     });
     mainWindow.webContents.send('rfpCurrent',username);
     if(proposals.length){
-      saveToExcel(proposalsArr,username,app).catch((err) => {
+      writeDataToGoogleSheet(proposalsArr,username,app).catch((err) => {
         console.error('Error inserting data into Excel:', err);
       });
-      submitProposals(proposals,linkedInSession,headers,app);
+      submitProposals(proposals,linkedInSession,headers,app,data);
       // reload the window here
-    //   page.webContents.on('did-finish-load',()=>{
-    //     if(proposals)page.reload();
-    //   })
+      page.webContents.on('did-finish-load',()=>{
+        if(proposals)page.reload();
+      })
     }
     
     
@@ -41,7 +41,7 @@ function extractProposals(data,username,page,linkedInSession,headers,app,mainWin
   }
   
   
-  async function submitProposals(proposals,session,headers,app){
+  async function submitProposals(proposals,session,headers,app,data){
     const { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,
     'x-li-pem-metadata': xlipenmetadata, 'x-li-track': xlitrack, } = { ...headers }
   
@@ -65,7 +65,7 @@ function extractProposals(data,username,page,linkedInSession,headers,app,mainWin
               formElementUrn: `urn:li:fsd_marketplaceProposalSubmissionFormElementV2:(PROPOSAL_DETAILS,${urn})`,
               formElementInputValues: [
                 {
-                  textInputValue: getSavedTemplate(app) // get this value from saved file....
+                  textInputValue: getSavedTemplate(app,) // get this value from saved file....
                 }
               ]
             },
@@ -85,7 +85,6 @@ function extractProposals(data,username,page,linkedInSession,headers,app,mainWin
       })
       if(res.ok){
         const body = await res.json()
-        console.log(body)
       }
         
       } catch (error) {
@@ -94,6 +93,10 @@ function extractProposals(data,username,page,linkedInSession,headers,app,mainWin
       }
       
     });
+
+    // after submitting proposal we need to send immediate message here
+    sendImmediateMessage(session,data,app)
+
   }
 
 
@@ -130,7 +133,77 @@ function extractProposals(data,username,page,linkedInSession,headers,app,mainWin
   }
   
 
+
   
+
+  async function sendImmediateMessage(session,data,app){
+
+    session.webRequest.onBeforeSendHeaders({ urls: ['https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.*'], types: ['xhr'] }, async (details, callback) => {
+      const { accept, 'Accept-Language': acceptLanguage,
+      'Accept-Encoding':acceptEncoding,
+       'Csrf-Token': csrfToken, 'X-LI-Lang': xlilang, 'X-li-page-instance': xlipageinstance,'x-restli-protocol-version':xrestiliprotocolversion,
+      'x-li-pem-metadata': xlipenmetadata,} = { ...details.requestHeaders };
+      delete details.requestHeaders['X-LI-Track']
+      // console.log(details.requestHeaders)
+      try {
+        const res = await session.fetch(details.url, {
+          headers: { accept, 'Accept-Language': acceptLanguage, 
+          'Accept-Encoding':acceptEncoding,
+          'Csrf-Token': csrfToken, 'x-li-lang': xlilang, 'X-li-page-instance': xlipageinstance}
+        })
+
+        if (res.ok) {
+          const body = await res.json()
+          var messengerProfiles=body.data.messengerConversationsBySyncToken.elements;
+          const profiles=data.included.filter((item)=>item.$type=='com.linkedin.voyager.dash.identity.profile.Profile');
+          profiles.forEach(async (profile)=>{
+            // entityurn for the profile
+            const entityUrn=profile.entityUrn;
+            const requiredMessengerProfile=messengerProfiles.filter(item=>item.creator.hostIdentityUrn===entityUrn)[0];
+            console.log(requiredMessengerProfile.messages)
+            let messageRequestPayload={
+              message: {
+                body: {
+                  attributes: [],
+                  text: getSavedTemplate(app,'messageTemplate.txt')
+                },
+                renderContentUnions: [],
+                conversationUrn: requiredMessengerProfile.entityUrn,
+                originToken: requiredMessengerProfile.messages.elements[0].originToken
+              },
+              mailboxUrn: requiredMessengerProfile.conversationParticipants.filter(item=>item.participantType.member.distance==='SELF')[0].hostIdentityUrn,
+              trackingId: "ûem\u008a^\u007fGU\u0086\b¹?qrxg",
+              dedupeByClientGeneratedToken: false
+            }
+            console.log(messageRequestPayload)
+            let res=await session.fetch("https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage",{
+              method:'POST',
+              headers:{
+                accept:'application/json',
+                'csrf-token':csrfToken,
+                'x-li-page-instance':'urn:li:page:d_flagship3_messaging_conversation_detail;tIV/G7Y8S5yI4zr6e+78/w==',
+                'x-li-lang':'en_US'
+
+              },
+              body:JSON.stringify(messageRequestPayload)
+            });
+
+            console.log(res)
+            console.log(res.data)
+          });
+        }
+
+        
+      } catch (error) {
+        console.log("Here is your error",error)
+        
+      }
+
+      // console.log(details)
+      callback({ cancel: false, requestHeaders: details.requestHeaders })
+    })
+
+  }
 
 
   module.exports={

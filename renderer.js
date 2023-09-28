@@ -29,11 +29,17 @@ proposalPage.addEventListener('click', async () => {
   const proposalTemplate = await window.electronAPI.readTemplate('templates/proposal.html');
   contentContainer.innerHTML = proposalTemplate;
   let  templateInput=document.querySelector('#savedTemplate');
+  let  messageTemplateInput=document.querySelector('#savedMessageTemplate');
+
   
   let text=await window.electronAPI.readTemplateText();
+  let textMessage=await window.electronAPI.readTemplateText('messageTemplate.txt');
+
   if(text?.length){
-    console.log(proposalTemplate)
     templateInput.innerHTML=text;
+  }
+  if(textMessage?.length){
+    messageTemplateInput.innerHTML=textMessage;
   }
 });
 
@@ -51,8 +57,14 @@ document.addEventListener('submit',async (event) => {
 
   if (event.target.id == 'textInputForm') {
     event.preventDefault();
-    const data = document.getElementById('templatetext').value;
+    let data = document.getElementById('templatetext').value;
     isSuccessful=await window.electronAPI.saveTemplate(data)
+    isSuccessful?alert("Template Saved Successfully"):alert("Something went wrong")
+  }
+  if (event.target.id == 'textInputFormMessage') {
+    event.preventDefault();
+    let data = document.getElementById('templatemessagetext').value;
+    isSuccessful=await window.electronAPI.saveTemplate(data,'messageTemplate.txt')
     isSuccessful?alert("Template Saved Successfully"):alert("Something went wrong")
   }
 });
