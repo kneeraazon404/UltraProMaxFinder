@@ -71,7 +71,6 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
       devTools:true,
     }
   })
-  rfpPage.webContents.openDevTools({mode:'detach'})
   rfpPage.loadURL('https://www.linkedin.com/service-marketplace/provider/requests')
   rfpPage.once('ready-to-show', () => {
     rfpPage.show()
@@ -89,16 +88,14 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
       if (res.ok) {
         const body = await res.json()
         // use this to get all the pending requests
-      extractProposals(body,username,rfpPage,linkedInSession,details.requestHeaders,app,mainWindow)
+      extractProposals(body,username,rfpPage,linkedInSession,details.requestHeaders,app,mainWindow,linkedInSessionPartitionName)
 
       }
     } catch (error) {
       console.log(error)
 
     }
-    setTimeout(() => {
-      rfpPage.close()
-    }, 10000);
+   
     callback({ cancel: false, requestHeaders: details.requestHeaders })
 
   })
