@@ -12,7 +12,7 @@ const readline = require('readline');
 const {getSavedTemplate,saveTemplateToFile}=require('./templateFunctions')
 const {getCredentials}=require('./getCredentials')
 const {readDataFromGoogleSheet} = require('./googleDocsConnections')
-const {extractProposals}=require('./proposals')
+const {extractProposals,sendMessage}=require('./proposals')
 const {readExcelFile}=require('./excelFunctions')
 const {scheduleDialog,scheduleTask,removeSchedule}=require('./scheduleSettings');
 // const { scheduler } = require('timers/promises');
@@ -68,9 +68,12 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
   const rfpPage = new BrowserWindow({
     parent: mainWindow, modal: true, show: false, webPreferences: {
       partition: linkedInSessionPartitionName,
+      preload: path.join(__dirname, 'messagePagePreload.js'),
       devTools:true,
     }
   })
+  rfpPage.webContents.openDevTools({ mode: 'detach' })
+
   rfpPage.loadURL('https://www.linkedin.com/service-marketplace/provider/requests')
   rfpPage.once('ready-to-show', () => {
     rfpPage.show()
@@ -151,7 +154,8 @@ app.whenReady().then(
     ipcMain.handle('read-excel-file',(event,username)=>readDataFromGoogleSheet(event,username,app))
     ipcMain.handle('readUsersData', readUserData)
     ipcMain.on('send-credentials',(event,credentials)=> getCredentials(event,credentials,mainWindow,app))
-    ipcMain.handle('saveTemplateToFile',(event,data,filename)=>saveTemplateToFile(event,data,app,filename))
+    ipcMain.handle('saveTemplateToFile',(event,data,filename)=>saveTemplateToFile(event,data,app,filename)),
+    ipcMain.handle('sendMessage',sendMessage)
     ipcMain.handle('readProposalTemplate', readProposalTemplate)
 
     const { screen } = require('electron')

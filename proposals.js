@@ -1,6 +1,7 @@
 // const {saveToExcel}=require('./excelFunctions')
 const { getSavedTemplate } = require('./templateFunctions')
 const { writeDataToGoogleSheet } = require('./googleDocsConnections');
+const { BrowserWindow } = require('electron');
 
 function extractProposals(data, username, page, linkedInSession, headers, app, mainWindow) {
 
@@ -30,7 +31,7 @@ function extractProposals(data, username, page, linkedInSession, headers, app, m
     writeDataToGoogleSheet(proposalsArr, username, app).catch((err) => {
       console.error('Error inserting data into Excel:', err);
     });
-    submitProposals(proposals,linkedInSession,headers,app,data,page);
+    submitProposals(proposals, linkedInSession, headers, app, data, page);
     // reload the window here
     // page.webContents.on('did-finish-load',()=>{
     //   if(proposals)page.reload();
@@ -104,9 +105,11 @@ async function submitProposals(proposals, session, headers, app, data, page) {
 
   // after submitting proposal we need to send immediate message here
   sendImmediateMessage(session, data, app, page)
-  setTimeout(() => {
+ if(page instanceof BrowserWindow){
+   setTimeout(() => {
     page.close()
   }, 10000);
+ }
 
 }
 
@@ -164,7 +167,6 @@ async function sendImmediateMessage(session, data, app, page) {
           'Csrf-Token': csrfToken, 'x-li-lang': xlilang, 'X-li-page-instance': xlipageinstance
         }
       })
-
       if (res.ok) {
         const body = await res.json()
         var messengerProfiles = body.data.messengerConversationsBySyncToken.elements;
@@ -199,6 +201,9 @@ async function sendImmediateMessage(session, data, app, page) {
                 if (res.ok) {
                   const body = await res.json()
                   originToken = body.data.messengerMessagesBySyncToken.elements.filter(e => e.originToken)[0].originToken;
+                  if (originToken === null) {
+                    originToken = generateUUID();
+                  }
                   let messageRequestPayload = {
                     message: {
                       body: {
@@ -213,35 +218,35 @@ async function sendImmediateMessage(session, data, app, page) {
                     trackingId: "ûem\u008a^\u007fGU\u0086\b¹?qrxg",
                     dedupeByClientGeneratedToken: false
                   }
-                try {
-                  let res = await session.fetch("https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage", {
-                    method: 'POST',
-                    headers: {
-                      accept: 'application/json',
-                      'csrf-token': csrfToken,
-                      'x-li-page-instance': 'urn:li:page:d_flagship3_messaging_conversation_detail;tIV/G7Y8S5yI4zr6e+78/w==',
-                      'x-li-lang': 'en_US'
-        
-                    },
-                    body: JSON.stringify(messageRequestPayload)
-                  });
-                  
-                } catch (error) {
-                  console.log(error)
-                  
-                }
+                  try {
+                    let res = await session.fetch("https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage", {
+                      method: 'POST',
+                      headers: {
+                        accept: 'application/json',
+                        'csrf-token': csrfToken,
+                        'x-li-page-instance': 'urn:li:page:d_flagship3_messaging_conversation_detail;tIV/G7Y8S5yI4zr6e+78/w==',
+                        'x-li-lang': 'en_US'
+
+                      },
+                      body: JSON.stringify(messageRequestPayload)
+                    });
+
+                  } catch (error) {
+                    console.log(error)
+
+                  }
                 }
               }
               catch (e) {
                 console.log(e)
               }
 
-              callback({ cancel: true, requestHeaders: details.requestHeaders })
+              callback({ cancel: false, requestHeaders: details.requestHeaders })
 
             })
 
           }
-          else{
+          else {
             let messageRequestPayload = {
               message: {
                 body: {
@@ -263,13 +268,22 @@ async function sendImmediateMessage(session, data, app, page) {
                 'csrf-token': csrfToken,
                 'x-li-page-instance': 'urn:li:page:d_flagship3_messaging_conversation_detail;tIV/G7Y8S5yI4zr6e+78/w==',
                 'x-li-lang': 'en_US'
-  
+
               },
               body: JSON.stringify(messageRequestPayload)
             });
+            if(!res.ok){
+
+            //   let message=getSavedTemplate(app, 'messageTemplate.txt');
+            //   console.log(message)
+            //  let output= await page.webContents.executeJavaScript(`document.querySelector('div[aria-label="Write a message…"] p').textContent="${message}";`)
+            //  console.log(output)
+
+             }
+
 
           }
-          
+
         });
       }
 
@@ -288,6 +302,27 @@ async function sendImmediateMessage(session, data, app, page) {
 }
 
 
+function sendMessage(){
+
+}
+
+
+function generateUUID() {
+  // Generate a random 8-character hexadecimal string for each segment
+  function generateSegment() {
+    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+  }
+
+  // Format the UUID segments and concatenate them with dashes
+  const uuid = `${generateSegment()}${generateSegment()}-${generateSegment()}-${generateSegment()}-${generateSegment()}-${generateSegment()}${generateSegment()}${generateSegment()}`;
+
+  return uuid;
+}
+
+
+
+
 module.exports = {
+  sendMessage,
   extractProposals
 }
