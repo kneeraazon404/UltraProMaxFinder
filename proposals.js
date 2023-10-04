@@ -2,28 +2,39 @@
 const { getSavedTemplate } = require('./templateFunctions')
 const { writeDataToGoogleSheet } = require('./googleDocsConnections');
 const { BrowserWindow } = require('electron');
+const puppeteer = require('puppeteer');
 
-function extractProposals(data, username, page, linkedInSession, headers, app, mainWindow) {
+
+async function extractProposals(data, username, page, linkedInSession, headers, app, mainWindow) {
 
 
   const proposalsArr = [];
   const proposals = data.included.filter((item) => item.$type == 'com.linkedin.voyager.dash.marketplaces.projects.MarketplaceProject')
   // const filter=(proposals,property)=>proposals[property]
   proposals.forEach(proposal => {
-    let jobTitle = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text
+    let locationUrn=proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header['*locationResolutionResult'];
+    let location=data.included.filter(item=>item.entityUrn==locationUrn)[0].defaultLocalizedNameWithoutCountryName
+    let projectUrl=`https://www.linkedin.com/service-marketplace/projects/${proposal.entityUrn.match(/\((\d+),/)[1]}`;
+    let Title = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text
     let jobCreatedDate = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.insight?.text
 
     jobCreatedDate = parseRelativeTime(jobCreatedDate)
 
 
-    let jobProvider = proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup.title?.text;
+    let clientName = proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup.title?.text;
+    let jobType = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text;
     let jobProviderDesignation = proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup.subtitle?.text;
     let jobProviderLinkedIn = proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup?.navigationUrl;
     let mutualConnectionUrl = proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation?.mutualConnectionsInsightUrl;
     let totalMutualConnections = proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.mutualConnectionsInsight?.text?.text;
     let questions = proposal.detailViewSectionsResolutionResults.filter((item) => item.description?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsDescription')[0].description.questionnaireQuestions;
     let projectDetails = questions.map((question) => `${question.question}\n${question.answer.textualAnswer}\n`).join('\n')
-    proposalsArr.push({ jobProvider, jobTitle, jobCreatedDate, jobProviderDesignation, jobProviderLinkedIn, mutualConnectionUrl, totalMutualConnections, projectDetails })
+
+    const spaceIndexInName = clientName.indexOf(' ');
+
+
+    proposalsArr.push({
+      'Title':jobProviderDesignation,'Job Type':jobType,'Proposal URL':projectUrl,'Proposal Date': `${jobCreatedDate.getFullYear()}-${(jobCreatedDate.getMonth() + 1).toString().padStart(2, '0')}-${jobCreatedDate.getDate().toString().padStart(2, '0')}`,'Proposal Time':`${jobCreatedDate.getHours().toString().padStart(2, '0')}:${jobCreatedDate.getMinutes().toString().padStart(2, '0')}`, 'Client First Name':clientName.slice(0,spaceIndexInName),'Client Last Name':clientName.slice(spaceIndexInName + 1),'Client Location':location,"Client Profile":jobProviderLinkedIn,"First Followup":""})
   });
   mainWindow.webContents.send('rfpCurrent', username);
 
@@ -152,6 +163,9 @@ function parseRelativeTime(relativeTime) {
 
 async function sendImmediateMessage(session, data, app, page) {
 
+
+
+
   session.webRequest.onBeforeSendHeaders({ urls: ['https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerConversations.*'], types: ['xhr'] }, async (details, callback) => {
     const { accept, 'Accept-Language': acceptLanguage,
       'Accept-Encoding': acceptEncoding,
@@ -179,111 +193,92 @@ async function sendImmediateMessage(session, data, app, page) {
             return filteredId === entityUrn;
           })[0];
           let originToken = requiredMessengerProfile.messages.elements[0].originToken;
-          if (originToken === null) {
-            page.loadURL(requiredMessengerProfile.conversationUrl)
-            page.webContents.on('did-finish-load', () => {
+          
+          console.log("we are here.....")
+          let cookies=await session.cookies.get({})
+        
+          let browser = await puppeteer.launch({headless: false});
+          let messagePage = await browser.newPage();
+          await messagePage.setCookie(...cookies)
+          await messagePage.goto(requiredMessengerProfile.conversationUrl);
+          let divSelector='.msg-form__contenteditable';
+          await messagePage.waitForSelector(divSelector);
+          await messagePage.click(divSelector);
+          let textToType=getSavedTemplate(app, 'messageTemplate.txt')
+          console.log("This is text to type",textToType)
+          await messagePage.keyboard.type(textToType)
+          setTimeout(()=>{},2000)
+          await messagePage.click('.msg-form__send-button')
+          setTimeout(()=>{
+            browser.close()
+          },5000)
+          // if (originToken === null) {
+          //   page.loadURL(requiredMessengerProfile.conversationUrl)
+          //   page.webContents.on('did-finish-load', () => {
 
-            })
-            session.webRequest.onBeforeSendHeaders({ urls: ['https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerMessages.*'], types: ['xhr'] }, async (details, callback) => {
-              const { accept, 'Accept-Language': acceptLanguage,
-                'Accept-Encoding': acceptEncoding,
-                'Csrf-Token': csrfToken, 'X-LI-Lang': xlilang, 'X-li-page-instance': xlipageinstance, 'x-restli-protocol-version': xrestiliprotocolversion,
-                'x-li-pem-metadata': xlipenmetadata, } = { ...details.requestHeaders };
-              delete details.requestHeaders['X-LI-Track'];
-              try {
-                const res = await session.fetch(details.url, {
-                  headers: {
-                    accept, 'Accept-Language': acceptLanguage,
-                    'Accept-Encoding': acceptEncoding,
-                    'Csrf-Token': csrfToken, 'x-li-lang': xlilang, 'X-li-page-instance': xlipageinstance
-                  }
-                })
-                if (res.ok) {
-                  const body = await res.json()
-                  originToken = body.data.messengerMessagesBySyncToken.elements.filter(e => e.originToken)[0].originToken;
-                  if (originToken === null) {
-                    originToken = generateUUID();
-                  }
-                  let messageRequestPayload = {
-                    message: {
-                      body: {
-                        attributes: [],
-                        text: getSavedTemplate(app, 'messageTemplate.txt')
-                      },
-                      renderContentUnions: [],
-                      conversationUrn: requiredMessengerProfile.entityUrn,
-                      originToken: originToken
-                    },
-                    mailboxUrn: requiredMessengerProfile.conversationParticipants.filter(item => item.participantType.member.distance === 'SELF')[0].hostIdentityUrn,
-                    trackingId: "ûem\u008a^\u007fGU\u0086\b¹?qrxg",
-                    dedupeByClientGeneratedToken: false
-                  }
-                  try {
-                    let res = await session.fetch("https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage", {
-                      method: 'POST',
-                      headers: {
-                        accept: 'application/json',
-                        'csrf-token': csrfToken,
-                        'x-li-page-instance': 'urn:li:page:d_flagship3_messaging_conversation_detail;tIV/G7Y8S5yI4zr6e+78/w==',
-                        'x-li-lang': 'en_US'
+          //   })
+          //   session.webRequest.onBeforeSendHeaders({ urls: ['https://www.linkedin.com/voyager/api/voyagerMessagingGraphQL/graphql?queryId=messengerMessages.*'], types: ['xhr'] }, async (details, callback) => {
+          //     const { accept, 'Accept-Language': acceptLanguage,
+          //       'Accept-Encoding': acceptEncoding,
+          //       'Csrf-Token': csrfToken, 'X-LI-Lang': xlilang, 'X-li-page-instance': xlipageinstance, 'x-restli-protocol-version': xrestiliprotocolversion,
+          //       'x-li-pem-metadata': xlipenmetadata, } = { ...details.requestHeaders };
+          //     delete details.requestHeaders['X-LI-Track'];
+          //     try {
+          //       const res = await session.fetch(details.url, {
+          //         headers: {
+          //           accept, 'Accept-Language': acceptLanguage,
+          //           'Accept-Encoding': acceptEncoding,
+          //           'Csrf-Token': csrfToken, 'x-li-lang': xlilang, 'X-li-page-instance': xlipageinstance
+          //         }
+          //       })
+          //       if (res.ok) {
+          //         const body = await res.json()
+          //         originToken = body.data.messengerMessagesBySyncToken.elements.filter(e => e.originToken)[0].originToken;
+          //         if (originToken === null) {
+          //           originToken = generateUUID();
+          //         }
+          //         let messageRequestPayload = {
+          //           message: {
+          //             body: {
+          //               attributes: [],
+          //               text: getSavedTemplate(app, 'messageTemplate.txt')
+          //             },
+          //             renderContentUnions: [],
+          //             conversationUrn: requiredMessengerProfile.entityUrn,
+          //             originToken: originToken
+          //           },
+          //           mailboxUrn: requiredMessengerProfile.conversationParticipants.filter(item => item.participantType.member.distance === 'SELF')[0].hostIdentityUrn,
+          //           trackingId: "ûem\u008a^\u007fGU\u0086\b¹?qrxg",
+          //           dedupeByClientGeneratedToken: false
+          //         }
+          //         try {
+          //           let res = await session.fetch("https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage", {
+          //             method: 'POST',
+          //             headers: {
+          //               accept: 'application/json',
+          //               'csrf-token': csrfToken,
+          //               'x-li-page-instance': 'urn:li:page:d_flagship3_messaging_conversation_detail;tIV/G7Y8S5yI4zr6e+78/w==',
+          //               'x-li-lang': 'en_US'
 
-                      },
-                      body: JSON.stringify(messageRequestPayload)
-                    });
+          //             },
+          //             body: JSON.stringify(messageRequestPayload)
+          //           });
 
-                  } catch (error) {
-                    console.log(error)
+          //         } catch (error) {
+          //           console.log(error)
 
-                  }
-                }
-              }
-              catch (e) {
-                console.log(e)
-              }
+          //         }
+          //       }
+          //     }
+          //     catch (e) {
+          //       console.log(e)
+          //     }
 
-              callback({ cancel: false, requestHeaders: details.requestHeaders })
+          //     callback({ cancel: false, requestHeaders: details.requestHeaders })
 
-            })
+          //   })
 
-          }
-          else {
-            let messageRequestPayload = {
-              message: {
-                body: {
-                  attributes: [],
-                  text: getSavedTemplate(app, 'messageTemplate.txt')
-                },
-                renderContentUnions: [],
-                conversationUrn: requiredMessengerProfile.entityUrn,
-                originToken: requiredMessengerProfile.messages.elements[0].originToken
-              },
-              mailboxUrn: requiredMessengerProfile.conversationParticipants.filter(item => item.participantType.member.distance === 'SELF')[0].hostIdentityUrn,
-              trackingId: "ûem\u008a^\u007fGU\u0086\b¹?qrxg",
-              dedupeByClientGeneratedToken: false
-            }
-            let res = await session.fetch("https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage", {
-              method: 'POST',
-              headers: {
-                accept: 'application/json',
-                'csrf-token': csrfToken,
-                'x-li-page-instance': 'urn:li:page:d_flagship3_messaging_conversation_detail;tIV/G7Y8S5yI4zr6e+78/w==',
-                'x-li-lang': 'en_US'
-
-              },
-              body: JSON.stringify(messageRequestPayload)
-            });
-            if(!res.ok){
-
-            //   let message=getSavedTemplate(app, 'messageTemplate.txt');
-            //   console.log(message)
-            //  let output= await page.webContents.executeJavaScript(`document.querySelector('div[aria-label="Write a message…"] p').textContent="${message}";`)
-            //  console.log(output)
-
-             }
-
-
-          }
-
+          // }
         });
       }
 

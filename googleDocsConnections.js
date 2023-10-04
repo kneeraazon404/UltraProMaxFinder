@@ -57,7 +57,9 @@ async function writeDataToGoogleSheet(data,pagename,app) {
       dataToWrite.push(header.map((key) => object[key]));
      
     });
-if(createSheetIfNotExists(sheets,authClient,spreadsheetId,sheetName))
+    console.log(dataToWrite)
+let isCreated=await createSheetIfNotExists(sheets,authClient,spreadsheetId,sheetName)
+if(isCreated)
     try {
 
     const isEmpty = await isSheetEmpty(sheets, spreadsheetId, sheetName);

@@ -91,7 +91,7 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
       if (res.ok) {
         const body = await res.json()
         // use this to get all the pending requests
-      extractProposals(body,username,rfpPage,linkedInSession,details.requestHeaders,app,mainWindow,linkedInSessionPartitionName)
+      await extractProposals(body,username,rfpPage,linkedInSession,details.requestHeaders,app,mainWindow,linkedInSessionPartitionName)
 
       }
     } catch (error) {
