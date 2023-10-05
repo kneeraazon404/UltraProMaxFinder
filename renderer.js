@@ -28,15 +28,28 @@ accountLink.addEventListener('click', async () => {
 proposalPage.addEventListener('click', async () => {
   const proposalTemplate = await window.electronAPI.readTemplate('templates/proposal.html');
   contentContainer.innerHTML = proposalTemplate;
-  let  templateInput=document.querySelector('#savedTemplate');
+  let  templateInput=document.querySelector('#savedTemplateText');
   let  messageTemplateInput=document.querySelector('#savedMessageTemplate');
 
   
-  let text=await window.electronAPI.readTemplateText();
+  let textArr=await window.electronAPI.readTemplateText();
+  console.log(textArr);
   let textMessage=await window.electronAPI.readTemplateText('messageTemplate.txt');
-
-  if(text?.length){
-    templateInput.innerHTML=text;
+  let selectElement=document.querySelector('#savedTemplate');
+  console.log(selectElement)
+  selectElement.addEventListener('change',(event)=>{
+    templateInput.textContent=event.target.value;
+  })
+  if(Object.keys(textArr).length !== 0){
+    console.log('This has ran')
+    Object.keys(textArr).forEach((templateTitle,index)=>{
+    const optionElement = document.createElement('option');
+    optionElement.text = templateTitle.toLowerCase();
+    optionElement.value = textArr[templateTitle];
+    selectElement.add(optionElement);
+    if(index===0)
+    templateInput.innerHTML=textArr[templateTitle];
+    })
   }
   if(textMessage?.length){
     messageTemplateInput.innerHTML=textMessage;
@@ -57,8 +70,9 @@ document.addEventListener('submit',async (event) => {
 
   if (event.target.id == 'textInputForm') {
     event.preventDefault();
+    let templateTitle=document.getElementById('templateTitle').value;
     let data = document.getElementById('templatetext').value;
-    isSuccessful=await window.electronAPI.saveTemplate(data)
+    isSuccessful=await window.electronAPI.saveTemplate({title:templateTitle,data})
     isSuccessful?alert("Template Saved Successfully"):alert("Something went wrong")
   }
   if (event.target.id == 'textInputFormMessage') {

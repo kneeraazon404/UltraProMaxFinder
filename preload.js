@@ -10,8 +10,8 @@ sendRFPtoClient:(callback)=>ipcRenderer.on('rfpCurrent',callback),
 readExcelFile:(username)=>ipcRenderer.invoke('read-excel-file',username),
 downloadExcelFile:(username)=>ipcRenderer.send('download-excel',username),
 fileDownloaded:(callback)=>ipcRenderer.on('download-complete',callback),
-saveTemplate:(data,filename='template.txt')=>ipcRenderer.invoke('saveTemplateToFile',data,filename),
-readTemplateText:(filename='template.txt')=>ipcRenderer.invoke('readProposalTemplate',filename),
+saveTemplate:(data,filename='template.json')=>ipcRenderer.invoke('saveTemplateToFile',data,filename),
+readTemplateText:(filename='template.json')=>ipcRenderer.invoke('readProposalTemplate',filename),
 scheduleSetting:(username)=>ipcRenderer.invoke('scheduleSetting',username),
 
 

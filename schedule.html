@@ -10,24 +10,35 @@
         <form id="myForm">
             <div class="mb-3">
                 <label for="timeInput" class="form-label">Start Time:</label>
-                <input type="time" class="form-control" id="timeInput" name="timeInput">
+                <input type="time" required class="form-control" id="timeInput" name="timeInput">
             </div>
 
             <div class="mb-3">
-                <label for="durationMinutes" class="form-label">Repeat Every:</label>
+                <label for="durationMinutes" class="form-label">Delay Between Refresh Proposals Page After:</label>
                 <div class="input-group">
-                    <input type="number" class="form-control" id="durationMinutes" name="durationMinutes" min="0" max="200">
+                    <input type="number" class="form-control" id="durationMinutesLower" name="durationMinutesLower" min="0" max="60" required>
+                    <p style="padding-left: 1rem;padding-right: 1rem;">to</p>
+                    <input type="number" class="form-control" id="durationMinutesHigher" name="durationMinutesHigher" min="0" max="60" required>
                     <span class="input-group-text">minutes</span>
                 </div>
             </div>
+            <!-- <div class="mb-3">
+                <label for="durationMinutes" class="form-label">Delay Between Each Proposal Submission:</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="durationSecondsLower" name="durationSecondsLower" min="0" max="60" required>
+                    <p style="padding-left: 1rem;padding-right: 1rem;">to</p>
+                    <input type="number" class="form-control" id="durationSecondsHigher" name="durationSecondsHigher" min="0" max="60" required>
+                    <span class="input-group-text">seconds</span>
+                </div>
+            </div> -->
 
             <div class="mb-3">
                 <label for="startDateInput" class="form-label">Start Date:</label>
-                <input type="date" class="form-control" id="startDateInput" name="startDateInput">
+                <input type="date" class="form-control" id="startDateInput" name="startDateInput" required>
             </div>
             <div class="mb-3">
                 <label for="endDateInput" class="form-label">End Date:</label>
-                <input type="date" class="form-control" id="endDateInput" name="endDateInput">
+                <input type="date" class="form-control" id="endDateInput" name="endDateInput" required>
             </div>
 
             <div class="mb-3">
@@ -48,7 +59,12 @@
             userName=username;
             document.getElementById('timeInput').value = data.timeValue;
             document.getElementById('startDateInput').value = data.startDateValue;
-            document.getElementById('durationMinutes').value = data.durationMinutesValue
+            document.getElementById('durationMinutesHigher').value = data.durationMinutesValueHigher
+            document.getElementById('durationMinutesLower').value = data.durationMinutesValueLower
+            // document.getElementById('durationSecondsLower').value = data.durationSecondsLower
+            // document.getElementById('durationSecondsHigher').value = data.durationSecondsHigher
+
+
             document.getElementById('endDateInput').value=data.endDateValue
         })
         removeSchedule.addEventListener('click',async (e)=>{
@@ -59,7 +75,10 @@
                 alert('removed saved schedule');
                 document.getElementById('timeInput').value = '';
             document.getElementById('startDateInput').value = ''
-            document.getElementById('durationMinutes').value = '';
+            document.getElementById('durationMinutesHigher').value = '';
+            document.getElementById('durationMinutesLower').value = '';
+            document.getElementById('durationSecondsHigher').value = '';
+            document.getElementById('durationSecondsLower').value = '';
             document.getElementById('endDateInput').value='';
             }
         });
@@ -67,13 +86,19 @@
         // Add an event listener to the form for form submission
         form.addEventListener('submit', function (e) {
             e.preventDefault(); // Prevent the default form submission behavior
-            
+            var lowerMinute = parseFloat(document.getElementById('durationMinutesLower').value);
+            var higherMinute = parseFloat(document.getElementById('durationMinutesHigher').value);
+            if (lowerMinute > higherMinute) {
+        document.getElementById('durationMinutesLower').setCustomValidity('Lower bound cannot be greater than higher bound.');
+        return;}
+            //
             // Get the values entered by the user
             var timeValue = document.getElementById('timeInput').value;
             var startDateValue = document.getElementById('startDateInput').value;
             var endDateValue = document.getElementById('endDateInput').value;
-            var durationMinutesValue = parseInt(document.getElementById('durationMinutes').value, 10);
-            window.scheduleApi.scheduleTask({timeValue, startDateValue, durationMinutesValue,endDateValue }, userName);
+            var durationMinutesValueLower = parseInt(document.getElementById('durationMinutesLower').value, 10);
+            var durationMinutesValueHigher = parseInt(document.getElementById('durationMinutesHigher').value, 10);
+            window.scheduleApi.scheduleTask({timeValue, startDateValue, durationMinutesValueLower,durationMinutesValueHigher,endDateValue }, userName);
         });
     </script>
 </body>

@@ -69,10 +69,10 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
     parent: mainWindow, modal: true, show: false, webPreferences: {
       partition: linkedInSessionPartitionName,
       preload: path.join(__dirname, 'messagePagePreload.js'),
-      devTools:true,
+      // devTools:true,
     }
   })
-  rfpPage.webContents.openDevTools({ mode: 'detach' })
+  // rfpPage.webContents.openDevTools({ mode: 'detach' })
 
   rfpPage.loadURL('https://www.linkedin.com/service-marketplace/provider/requests')
   rfpPage.once('ready-to-show', () => {
@@ -212,10 +212,25 @@ if(existingData){
     // console.log(startDateTime)
     // const rule = new schedule.RecurrenceRule();
     // rule.minute=data.durationMinutesValue;
-    const job=schedule.scheduleJob({ start: startDateTime, end: endDateTime==''?undefined:endDateTime, rule: `*/${data.durationMinutesValue} * * * *` },(_)=>extractRequestForProposals(_,username,app,mainWindow))
+    let randomMinute=Math.floor(Math.random() * (data.durationMinutesValueHigher - data.durationMinutesValueLower + 1)) + data.durationMinutesValueLower;
+    const job=schedule.scheduleJob({ start: startDateTime, end: endDateTime==''?undefined:endDateTime, rule: `*/${randomMinute} * * * *` },(_)=>{extractRequestForProposals(_,username,app,mainWindow);
+      let randomMinute=Math.floor(Math.random() * (data.durationMinutesValueHigher - data.durationMinutesValueLower + 1)) + data.durationMinutesValueLower;
+      let isReschuled=job.reschedule({ start: startDateTime, end: endDateTime==''?undefined:endDateTime, rule: `*/${randomMinute} * * * *` })
+      if(isReschuled){
+        console.log("Reschuled Successfully....")
+      }
+      else{
+        console.log("Reschedule failed....")
+      }
+    }
+    );
     console.log(job.nextInvocation())
+    
+   
+
     // const job = new SimpleIntervalJob({ minutes:,}, task)
     // scheduler.addSimpleIntervalJob(job)
+  
   });
 }
 

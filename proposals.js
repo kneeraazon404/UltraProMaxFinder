@@ -17,10 +17,7 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
     let projectUrl=`https://www.linkedin.com/service-marketplace/projects/${proposal.entityUrn.match(/\((\d+),/)[1]}`;
     let Title = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text
     let jobCreatedDate = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.insight?.text
-
     jobCreatedDate = parseRelativeTime(jobCreatedDate)
-
-
     let clientName = proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup.title?.text;
     let jobType = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text;
     let jobProviderDesignation = proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup.subtitle?.text;
@@ -31,13 +28,10 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
     let projectDetails = questions.map((question) => `${question.question}\n${question.answer.textualAnswer}\n`).join('\n')
 
     const spaceIndexInName = clientName.indexOf(' ');
-
-
     proposalsArr.push({
       'Title':jobProviderDesignation,'Job Type':jobType,'Proposal URL':projectUrl,'Proposal Date': `${jobCreatedDate.getFullYear()}-${(jobCreatedDate.getMonth() + 1).toString().padStart(2, '0')}-${jobCreatedDate.getDate().toString().padStart(2, '0')}`,'Proposal Time':`${jobCreatedDate.getHours().toString().padStart(2, '0')}:${jobCreatedDate.getMinutes().toString().padStart(2, '0')}`, 'Client First Name':clientName.slice(0,spaceIndexInName),'Client Last Name':clientName.slice(spaceIndexInName + 1),'Client Location':location,"Client Profile":jobProviderLinkedIn,"First Followup":""})
   });
   mainWindow.webContents.send('rfpCurrent', username);
-
   if (proposals.length) {
     writeDataToGoogleSheet(proposalsArr, username, app).catch((err) => {
       console.error('Error inserting data into Excel:', err);
@@ -70,6 +64,7 @@ async function submitProposals(proposals, session, headers, app, data, page) {
 
     let urn = proposal.entityUrn;
     // console.log(urn)
+    let jobType=proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text;
 
     try {
       const res = await session.fetch('https://www.linkedin.com/voyager/api/voyagerMarketplacesDashProposalSubmissionForm?action=submitProposal&decorationId=com.linkedin.voyager.dash.deco.marketplaces.MarketplaceProject-46', {
@@ -85,7 +80,7 @@ async function submitProposals(proposals, session, headers, app, data, page) {
               formElementUrn: `urn:li:fsd_marketplaceProposalSubmissionFormElementV2:(PROPOSAL_DETAILS,${urn})`,
               formElementInputValues: [
                 {
-                  textInputValue: getSavedTemplate(app,) // get this value from saved file....
+                  textInputValue: getSavedTemplate(app,)[jobType.toLowerCase()]??getSavedTemplate(app,)['default'] // get this value from saved file....
                 }
               ]
             },
@@ -194,7 +189,6 @@ async function sendImmediateMessage(session, data, app, page) {
           })[0];
           let originToken = requiredMessengerProfile.messages.elements[0].originToken;
           
-          console.log("we are here.....")
           let cookies=await session.cookies.get({})
         
           let browser = await puppeteer.launch({headless: false});
@@ -205,7 +199,6 @@ async function sendImmediateMessage(session, data, app, page) {
           await messagePage.waitForSelector(divSelector);
           await messagePage.click(divSelector);
           let textToType=getSavedTemplate(app, 'messageTemplate.txt')
-          console.log("This is text to type",textToType)
           await messagePage.keyboard.type(textToType)
           setTimeout(()=>{},2000)
           await messagePage.click('.msg-form__send-button')
