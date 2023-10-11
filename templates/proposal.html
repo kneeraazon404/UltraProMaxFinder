@@ -3,13 +3,13 @@
         <div class="form-group">
             <h3 class="h3">PROPOSAL CATEGORY</h3>
             <label for="text">Enter JOB CATEGORY for proposal:</label>
-            <textarea class="form-control" id="templateTitle" rows="30" cols="30" aria-label="With textarea" placeholder="Enter title"></textarea> 
+            <textarea class="form-control" id="templateTitle"  required rows="30" cols="30" aria-label="With textarea" placeholder="Enter title"></textarea> 
         </div>
         <div style="margin-top: 1rem;"></div>
         <div class="form-group">
             <h3 class="h3">PROPOSAL TEMPLATE</h3>
             <label for="text">Enter reply to proposal:</label>
-            <textarea class="form-control" id="templatetext" rows="30" cols="30" aria-label="With textarea" placeholder="Enter template"></textarea> 
+            <textarea class="form-control" id="templatetext" required rows="30" cols="30" aria-label="With textarea" placeholder="Enter template"></textarea> 
         </div>
         <br>
         <button type="submit" class="btn btn-primary">Save Template</button>
@@ -21,6 +21,14 @@
         <select name="template" class="form-select" id="savedTemplate"></select>
         <h3 class="h3">Saved Template</h3>
         <p id="savedTemplateText"></p>
+        <div style="margin-bottom: 1rem;">
+            <button class="btn btn-primary" id="updateTemplate">
+                Edit
+            </button>
+            <button class="btn btn-danger" id="deleteTemplate">
+                Delete
+            </button>
+        </div>
     </div>
 </div>
 <div class="border-bottom border-4"></div>

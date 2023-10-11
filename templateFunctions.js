@@ -51,6 +51,28 @@ function getSavedTemplate(app,filename='template.json'){
   }
  }
 
+ async function deleteTemplateKey(event,keyName,app){
+  filename='template.json';
+  if(filename==='template.json'){
+    const filePath = path.join(app.getPath('userData'), filename);
+    if (!fssync.existsSync(filePath)) {
+      fssync.writeFileSync(filePath, '{}', 'utf-8');
+    }
+    let jsonFile=await fs.readFile(filePath);
+    var templates = JSON.parse(jsonFile)??{};
+    delete templates[keyName];
+    let success=true;
+    try {
+      await fs.writeFile(filePath, JSON.stringify(templates));
+    } catch (error) {
+      console.log(error);
+      success=false; 
+    }
+    return success;
+  }
+
+ }
+
 
 
 
@@ -59,6 +81,7 @@ function getSavedTemplate(app,filename='template.json'){
 
   
  module.exports={
+  deleteTemplateKey,
     getSavedTemplate,
     saveTemplateToFile
  }

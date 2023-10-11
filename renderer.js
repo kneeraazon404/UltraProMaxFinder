@@ -3,6 +3,7 @@
 
 
 
+
 const accountLink = document.getElementById('account_page');
 const accountListPage = document.getElementById('accountList_page');
 const messagesLink = document.getElementById('messages-link');
@@ -41,7 +42,6 @@ proposalPage.addEventListener('click', async () => {
     templateInput.textContent=event.target.value;
   })
   if(Object.keys(textArr).length !== 0){
-    console.log('This has ran')
     Object.keys(textArr).forEach((templateTitle,index)=>{
     const optionElement = document.createElement('option');
     optionElement.text = templateTitle.toLowerCase();
@@ -59,6 +59,8 @@ proposalPage.addEventListener('click', async () => {
 accountListPage.addEventListener('click', getAccountList);
 
 
+
+
 //   const linkedInForm=document.getElementById()
 document.addEventListener('submit',async (event) => {
   if (event.target.id == 'linkedInForm') {
@@ -67,19 +69,28 @@ document.addEventListener('submit',async (event) => {
     const password = document.getElementById('password').value;
     window.electronAPI.sendCredentials({ username, password })
   }
+  console.log(event)
 
   if (event.target.id == 'textInputForm') {
     event.preventDefault();
     let templateTitle=document.getElementById('templateTitle').value;
     let data = document.getElementById('templatetext').value;
     isSuccessful=await window.electronAPI.saveTemplate({title:templateTitle,data})
-    isSuccessful?alert("Template Saved Successfully"):alert("Something went wrong")
+    if(isSuccessful){
+      alert("Template Saved Successfully");
+      proposalPage.click();
+    }
+    else alert("Something went wrong")
   }
   if (event.target.id == 'textInputFormMessage') {
     event.preventDefault();
     let data = document.getElementById('templatemessagetext').value;
     isSuccessful=await window.electronAPI.saveTemplate(data,'messageTemplate.txt')
-    isSuccessful?alert("Template Saved Successfully"):alert("Something went wrong")
+    if(isSuccessful){
+      alert("Template Saved Successfully");
+      proposalPage.click();
+    }
+    else alert("Something went wrong")
   }
 });
 
@@ -100,6 +111,32 @@ document.addEventListener('click', async (event) => {
     // console.log(settingButton.getAttribute('data-username'))
     // console.log(event.target.dataset.username===undefined?settingButton.getAttribute('data-username'):event.target.dataset.username)
    await window.electronAPI.scheduleSetting(event.target.dataset.username===undefined?settingButton.getAttribute('data-username'):event.target.dataset.username)
+  }
+  if(event.target.id==='updateTemplate'){
+    let selectElement=document.querySelector('#savedTemplate');
+    if(selectElement.options.length===0){
+      alert("No Saved Template Found");
+      return;
+    }
+    document.getElementById('templateTitle').disabled=true;
+    document.getElementById('templateTitle').value=selectElement.options[selectElement.selectedIndex].text;
+    document.getElementById('templatetext').value=selectElement.value;
+  }
+  if(event.target.id=='deleteTemplate'){
+    let selectElement=document.querySelector('#savedTemplate');
+    if(selectElement.options.length===0){
+      alert("No Saved Template Found");
+      return;
+    }
+    var selectedOption = selectElement.options[selectElement.selectedIndex].text;
+    var result = confirm(`Are you sure to delete ${selectedOption} ?`);
+    if(result){
+     let isSuccessful= await window.electronAPI.deleteTemplateKey(selectedOption);
+     if(isSuccessful){
+      proposalPage.click();
+      alert("Deleted Successfully.")
+     }
+    }
   }
 });
 

@@ -9,7 +9,7 @@ const chokidar = require('chokidar');
 const fssync = require('fs');
 const path = require('path');
 const readline = require('readline');
-const {getSavedTemplate,saveTemplateToFile}=require('./templateFunctions')
+const {getSavedTemplate,saveTemplateToFile,deleteTemplateKey}=require('./templateFunctions')
 const {getCredentials}=require('./getCredentials')
 const {readDataFromGoogleSheet} = require('./googleDocsConnections')
 const {extractProposals,sendMessage}=require('./proposals')
@@ -157,6 +157,7 @@ app.whenReady().then(
     ipcMain.handle('saveTemplateToFile',(event,data,filename)=>saveTemplateToFile(event,data,app,filename)),
     ipcMain.handle('sendMessage',sendMessage)
     ipcMain.handle('readProposalTemplate', readProposalTemplate)
+    ipcMain.handle('deleteTemplateKey',(event,keyName)=>deleteTemplateKey(event,keyName,app))
 
     const { screen } = require('electron')
     const primaryDisplay = screen.getPrimaryDisplay()
