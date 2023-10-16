@@ -102,7 +102,34 @@ function saveToDisk(data, app) {
 
 
 
+async function deleteObjectsWithValue(filePath, valueToDelete) {
+  try {
+    // Read the JSONLines file
+    const data = await fs.readFile(filePath, 'utf8');
+
+    // Parse each line as JSON
+    const objects = data.split('\n').filter(line => line.trim() !== '').map(JSON.parse);
+
+    // Filter out objects with the specified value in the "item" key
+    const filteredObjects = objects.filter(obj => obj.username !== valueToDelete);
+
+    // Convert the filtered objects back to JSONLines format
+    const updatedContent = filteredObjects.map(JSON.stringify).join('\n');
+
+    // Write the updated content back to the file
+    await fs.writeFile(filePath, updatedContent, 'utf8');
+
+    console.log(`Objects with item value '${valueToDelete}' deleted successfully.`);
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+  }
+}
+
+
+
+
 
   module.exports={
-    getCredentials
+    getCredentials,
+    deleteObjectsWithValue
   }

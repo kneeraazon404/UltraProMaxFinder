@@ -14,7 +14,9 @@ saveTemplate:(data,filename='template.json')=>ipcRenderer.invoke('saveTemplateTo
 readTemplateText:(filename='template.json')=>ipcRenderer.invoke('readProposalTemplate',filename),
 scheduleSetting:(username)=>ipcRenderer.invoke('scheduleSetting',username),
 
-deleteTemplateKey:(templateKey)=>ipcRenderer.invoke('deleteTemplateKey',templateKey)
+deleteTemplateKey:(templateKey)=>ipcRenderer.invoke('deleteTemplateKey',templateKey),
+
+removeAccount:(username)=>ipcRenderer.invoke('removeAccount',username)
 
 
 

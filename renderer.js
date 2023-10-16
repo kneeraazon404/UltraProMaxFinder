@@ -112,6 +112,17 @@ document.addEventListener('click', async (event) => {
     // console.log(event.target.dataset.username===undefined?settingButton.getAttribute('data-username'):event.target.dataset.username)
    await window.electronAPI.scheduleSetting(event.target.dataset.username===undefined?settingButton.getAttribute('data-username'):event.target.dataset.username)
   }
+  if ([...event.target.classList].includes('removeAccountButton')||event.target.closest('.removeAccountButton')) {
+    console.log("Removing Account");
+    let deleteButton=event.target.closest('.removeAccountButton');
+    if(confirm("Are you sure you want to remove this account?")){
+      await window.electronAPI.removeAccount(event.target.dataset.username===undefined?deleteButton.getAttribute('data-username'):event.target.dataset.username)
+
+    }
+    // console.log(settingButton.getAttribute('data-username'))
+    // console.log(event.target.dataset.username===undefined?settingButton.getAttribute('data-username'):event.target.dataset.username)
+   
+  }
   if(event.target.id==='updateTemplate'){
     let selectElement=document.querySelector('#savedTemplate');
     if(selectElement.options.length===0){
@@ -222,10 +233,14 @@ async function getAccountList() {
   
   data = originalData.map(user => `<tr>
   <td data-username=${user.username}>${user.username}</td>
-  <td><button data-username=${user.username} class="${user.isScheduled ? 'scheduled schedule-button' : 'notScheduled schedule-button'}">${user.isScheduled ? 'Test Now' : 'Not Scheduled'}</button></td>
-  <td><button class='settingButton' data-username=${user.username}><i class="material-icons small">
+  <td><button data-username=${user.username} class="${user.isScheduled ? 'scheduled schedule-button' : 'notScheduled schedule-button'} btn btn-primary">${user.isScheduled ? 'Test Now' : 'Not Scheduled'}</button></td>
+  <td><button class='settingButton btn btn-primary' data-username=${user.username}><i class="material-icons">
   settings
-  </i></button></td>
+  </i></button>
+  <button class='removeAccountButton btn btn-danger' style="text-align:center;" data-username=${user.username}><i class="material-icons" style="vertical-align: middle;">
+  delete
+  </i></button>
+  </td>
   </tr>`);
   data = data.join('\n');
 

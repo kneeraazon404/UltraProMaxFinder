@@ -10,7 +10,7 @@ const fssync = require('fs');
 const path = require('path');
 const readline = require('readline');
 const {getSavedTemplate,saveTemplateToFile,deleteTemplateKey}=require('./templateFunctions')
-const {getCredentials}=require('./getCredentials')
+const {getCredentials,deleteObjectsWithValue}=require('./getCredentials')
 const {readDataFromGoogleSheet} = require('./googleDocsConnections')
 const {extractProposals,sendMessage}=require('./proposals')
 const {readExcelFile}=require('./excelFunctions')
@@ -158,6 +158,49 @@ app.whenReady().then(
     ipcMain.handle('sendMessage',sendMessage)
     ipcMain.handle('readProposalTemplate', readProposalTemplate)
     ipcMain.handle('deleteTemplateKey',(event,keyName)=>deleteTemplateKey(event,keyName,app))
+    ipcMain.handle('removeAccount',(event,username)=>removeAccount(event,username,app,mainWindow));
+
+
+    async function removeAccount(event,username,app,mainWindow){
+
+      let folderPath=path.join(app.getPath('userData'),'Partitions',username)
+      try {
+        await removeFolderRecursive(folderPath);
+        const filePath = path.join(app.getPath('userData'), 'userInfo.json');
+        await deleteObjectsWithValue(filePath,username);
+        mainWindow.webContents.reload()
+
+        return success;
+         
+        
+      } catch (error) {
+        
+      }
+
+    }
+
+    async function removeFolderRecursive(folderPath) {
+      try {
+        const stats = await fs.stat(folderPath);
+    
+        if (stats.isDirectory()) {
+          const files = await fs.readdir(folderPath);
+    
+          for (const file of files) {
+            const curPath = path.join(folderPath, file);
+            await removeFolderRecursive(curPath);
+          }
+    
+          await fs.rmdir(folderPath);
+        } else {
+          await fs.unlink(folderPath);
+        }
+    
+        console.log(`Folder ${folderPath} and its contents have been deleted.`);
+      } catch (error) {
+        console.error(`Error deleting ${folderPath}:`, error.message);
+      }
+    }
 
     const { screen } = require('electron')
     const primaryDisplay = screen.getPrimaryDisplay()
