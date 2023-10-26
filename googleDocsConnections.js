@@ -1,6 +1,6 @@
 const {google }=require('googleapis');
 const {auth}=require('google-auth-library')
-const {path}=require('path');
+const path=require('path');
 const { readFileSync } = require('fs');
 
 let credentials = JSON.parse(readFileSync("./credentials.json", "utf8"));
@@ -36,13 +36,19 @@ async function authorize() {
 
 async function writeDataToGoogleSheet(data,pagename,app) {
     const userDataPath = app.getPath('userData');
+    let authTokenFilePath = path.join(userDataPath,'excelUrl.txt')
+    let pattern=/\/d\/([A-Za-z0-9_-]+)/;
+    let sheetUrl=readFileSync(authTokenFilePath);
+    let id=pattern.exec(sheetUrl)[1];
+    
+
     const header = Object.keys(data[0]);
 
     const authClient = await authorize();
     const sheets = google.sheets({ version: 'v4', auth: authClient });
   
     // Specify the spreadsheet ID and range
-    const spreadsheetId = '1LRdkPbD9zl7pDTK8PZ0T7HueiupVVcII3aN6xzsuQHE';
+    const spreadsheetId = id;
     const sheetName = pagename; // Replace with your desired range
   
     // Data to write
@@ -139,10 +145,16 @@ if(isCreated)
 
   async function readDataFromGoogleSheet(event,pagename, app) {
     const userDataPath = app.getPath('userData');
+    let authTokenFilePath = path.join(userDataPath,'excelUrl.txt')
+    let pattern=/\/d\/([A-Za-z0-9_-]+)/;
+    let sheetUrl=readFileSync(authTokenFilePath);
+    let id=pattern.exec(sheetUrl)[1];
+  
+
     const authClient = await authorize();
     const sheets = google.sheets({ version: 'v4', auth: authClient });
   
-    const spreadsheetId = '1LRdkPbD9zl7pDTK8PZ0T7HueiupVVcII3aN6xzsuQHE';
+    const spreadsheetId = id;
     const sheetName = pagename;
   
     try {
@@ -173,8 +185,8 @@ if(isCreated)
   
       return data;
     } catch (error) {
-      console.error('Error reading data:', error);
-      return [];
+      console.error('Error reading data:', error.response?.status);
+      return error.response?.status;
     }
   }
 

@@ -37,15 +37,11 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
       console.error('Error inserting data into Excel:', err);
     });
     submitProposals(proposals, linkedInSession, headers, app, data, page);
-    // reload the window here
-    // page.webContents.on('did-finish-load',()=>{
-    //   if(proposals)page.reload();
-    // })
   }
   else {
-    setTimeout(() => {
-      page.close()
-    }, 10000);
+    // setTimeout(() => {
+    //   page.close()
+    // }, 10000);
   }
 
 
@@ -54,8 +50,8 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
 
 
 async function submitProposals(proposals, session, headers, app, data, page) {
-  const { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,
-    'x-li-pem-metadata': xlipenmetadata, 'x-li-track': xlitrack, } = { ...headers }
+  // const { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,
+  //   'x-li-pem-metadata': xlipenmetadata, 'x-li-track': xlitrack, } = { ...headers }
 
 
 
@@ -63,59 +59,137 @@ async function submitProposals(proposals, session, headers, app, data, page) {
   proposals.forEach(async proposal => {
 
     let urn = proposal.entityUrn;
-    // console.log(urn)
+    // console.log(urn);dispatchEventw;
     let jobType=proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text;
 
-    try {
-      const res = await session.fetch('https://www.linkedin.com/voyager/api/voyagerMarketplacesDashProposalSubmissionForm?action=submitProposal&decorationId=com.linkedin.voyager.dash.deco.marketplaces.MarketplaceProject-46', {
-        headers: {
-          accept, 'accept-language': acceptLanguage,
-          'Content-Type': 'application/json; charset=UTF-8',
-          'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance, 'x-li-pem-metadata': 'Voyager - Services Marketplace=service-request-proposal-submission-form-submit'
-        },
-        method: 'POST',
-        'body': JSON.stringify({
-          proposalDetailsAnswers: [
-            {
-              formElementUrn: `urn:li:fsd_marketplaceProposalSubmissionFormElementV2:(PROPOSAL_DETAILS,${urn})`,
-              formElementInputValues: [
-                {
-                  textInputValue: getSavedTemplate(app,)[jobType.toLowerCase()]??getSavedTemplate(app,)['default'] // get this value from saved file....
-                }
-              ]
-            },
-            {
-              formElementUrn: `urn:li:fsd_marketplaceProposalSubmissionFormElementV2:(INCLUDE_FREE_CONSULTATION,${urn})`,
-              formElementInputValues: [
-                // {
-                //   entityInputValue: {
-                //     inputEntityName: "INCLUDE_FREE_CONSULTATION"
-                //   }
-                // }
-              ]
-            }
-          ],
-          marketplaceProjectProposalUrn: proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.serviceProviderInsight.providerProjectActions['*marketplaceProjectProposal']
-        })
-      })
-      if (res.ok) {
-        const body = await res.json()
+    // write the case for the subcases
+    let isResumeProposal= proposal.detailViewSectionsResolutionResults.filter((item) => item.description?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsDescription')[0].description.questionnaireQuestions.find(item=>item.question==='What type of resume?');
+
+    // console.log(isResumeProposal);
+
+    if(isResumeProposal){
+      let regexBoth=/Linkedin.*traditional|traditional.*linkedin/i;
+      let regexLinkedIn=/Linkedin/i;
+      let regexTraditional=/traditional/i;
+      if (regexBoth.test(isResumeProposal.answer.textualAnswer)){
+        jobType='resume review both';
+      }
+      else if(regexLinkedIn.test(isResumeProposal.answer.textualAnswer)){
+        jobType='resume review linkedin';
+      }
+      else if(regexTraditional.test(isResumeProposal.answer.textualAnswer)){
+        jobType='resume review traditional';
       }
 
-    } catch (error) {
-      console.log(error);
-
     }
+
+
+    try {
+      let regex=/\d+/;
+      let urnId=urn.match(regex);
+      let cookies=await session.cookies.get({});
+        
+      let browser = await puppeteer.launch({headless: false});
+      let messagePage = await browser.newPage();
+      await messagePage.setCookie(...cookies)
+      await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`);
+      await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
+      await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])');
+      let textToType=getSavedTemplate(app,)[jobType.toLowerCase()]??getSavedTemplate(app,)['default'];
+      await messagePage.waitForSelector('textarea');
+      await messagePage.click('textarea');
+      await messagePage.keyboard.type(textToType);
+      setTimeout(()=>{},5000);
+
+      let elementToScrollTo=await messagePage.waitForSelector("button[data-test-proposal-submission-modal__submit-button]");
+      console.log(elementToScrollTo);
+      if (elementToScrollTo!==null) {
+      
+        // Scroll the element into view
+        
+        await messagePage.evaluate(element => {
+          element.scrollIntoView();
+        }, elementToScrollTo);
+      } else {
+        console.log('Element not found.');
+      }
+      await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Submit'])");
+      await messagePage.click("::-p-xpath(.//button//span[text()='Submit'])");
+      await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Message'])");
+      await messagePage.click("::-p-xpath(.//button//span[text()='Message'])");
+      setTimeout(()=>{},5000);
+      await messagePage.waitForSelector("::-p-xpath(.//button[@type='submit'][text()='Send'])");
+      await messagePage.click("::-p-xpath(.//button[@type='submit'][text()='Send'])")
+      setTimeout(async ()=>{
+        await messagePage.close();
+        await browser.close();
+      },5000);
+
+      // if(page instanceof BrowserWindow){
+      //         setTimeout(() => {
+      //          page.close()
+      //        }, 5000);
+      //       }
+    } catch (error) {
+      console.log(error)
+      
+    }
+
+
+      // DeviceOrientationEvedfjsdnfkjd;
+
+
+    // try {
+    //   const res = await session.fetch('https://www.linkedin.com/voyager/api/voyagerMarketplacesDashProposalSubmissionForm?action=submitProposal&decorationId=com.linkedin.voyager.dash.deco.marketplaces.MarketplaceProject-46', {
+    //     headers: {
+    //       accept, 'accept-language': acceptLanguage,
+    //       'Content-Type': 'application/json; charset=UTF-8',
+    //       'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance, 'x-li-pem-metadata': 'Voyager - Services Marketplace=service-request-proposal-submission-form-submit'
+    //     },
+    //     method: 'POST',
+    //     'body': JSON.stringify({
+    //       proposalDetailsAnswers: [
+    //         {
+    //           formElementUrn: `urn:li:fsd_marketplaceProposalSubmissionFormElementV2:(PROPOSAL_DETAILS,${urn})`,
+    //           formElementInputValues: [
+    //             {
+    //               textInputValue: getSavedTemplate(app,)[jobType.toLowerCase()]??getSavedTemplate(app,)['default'] // get this value from saved file....
+    //             }
+    //           ]
+    //         },
+    //         {
+    //           formElementUrn: `urn:li:fsd_marketplaceProposalSubmissionFormElementV2:(INCLUDE_FREE_CONSULTATION,${urn})`,
+    //           formElementInputValues: [
+    //             // {
+    //             //   entityInputValue: {
+    //             //     inputEntityName: "INCLUDE_FREE_CONSULTATION"
+    //             //   }
+    //             // }
+    //           ]
+    //         }
+    //       ],
+    //       marketplaceProjectProposalUrn: proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.serviceProviderInsight.providerProjectActions['*marketplaceProjectProposal']
+    //     })
+    //   })
+    //   if (res.ok) {
+    //     const body = await res.json()
+    //     sendImmediateMessage(session, data, app, page)
+    //     if(page instanceof BrowserWindow){
+    //       setTimeout(() => {
+    //        page.close()
+    //      }, 10000);
+    //     }
+    //   }
+
+    // } catch (error) {
+    //   console.log(error);
+
+    // }
 
   });
 
   // after submitting proposal we need to send immediate message here
-  sendImmediateMessage(session, data, app, page)
- if(page instanceof BrowserWindow){
-   setTimeout(() => {
-    page.close()
-  }, 10000);
- }
+
 
 }
 
@@ -187,7 +261,7 @@ async function sendImmediateMessage(session, data, app, page) {
             let filteredId = item.conversationParticipants.filter(innerItem => innerItem.participantType?.member?.distance !== 'SELF')[0]?.hostIdentityUrn;
             return filteredId === entityUrn;
           })[0];
-          let originToken = requiredMessengerProfile.messages.elements[0].originToken;
+          // let originToken = requiredMessengerProfile.messages.elements[0].originToken;
           
           let cookies=await session.cookies.get({})
         

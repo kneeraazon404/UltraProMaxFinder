@@ -13,7 +13,7 @@ const {getSavedTemplate,saveTemplateToFile,deleteTemplateKey}=require('./templat
 const {getCredentials,deleteObjectsWithValue}=require('./getCredentials')
 const {readDataFromGoogleSheet} = require('./googleDocsConnections')
 const {extractProposals,sendMessage}=require('./proposals')
-const {readExcelFile}=require('./excelFunctions')
+// const {readExcelFile}=require('./excelFunctions')
 const {scheduleDialog,scheduleTask,removeSchedule}=require('./scheduleSettings');
 // const { scheduler } = require('timers/promises');
 
@@ -75,9 +75,9 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
   // rfpPage.webContents.openDevTools({ mode: 'detach' })
 
   rfpPage.loadURL('https://www.linkedin.com/service-marketplace/provider/requests')
-  rfpPage.once('ready-to-show', () => {
-    rfpPage.show()
-  })
+  // rfpPage.once('ready-to-show', () => {
+  //   rfpPage.show()
+  // })
   linkedInSession.webRequest.onBeforeSendHeaders({ urls: ['https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(count:20,start:0)&&queryId=voyagerMarketplacesDashMarketplaceProjects.*'], types: ['xhr'] }, async (details, callback) => {
     // Log headers
 
@@ -89,19 +89,33 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
         headers: { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,'x-li-pem-metadata':xlipenmetadata },
       })
       if (res.ok) {
-        const body = await res.json()
-        // use this to get all the pending requests
+        const body = await res.json();        // use this to get all the pending requests
       await extractProposals(body,username,rfpPage,linkedInSession,details.requestHeaders,app,mainWindow,linkedInSessionPartitionName)
 
       }
-    } catch (error) {
-      console.log(error)
+      else {
+        console.log(res)
+        // setTimeout(() => {
+        //   rfpPage.close()
+        // }, 8000);
+  
 
+      }
+    
+    } catch (error) {
+      console.log(error);
+      // setTimeout(() => {
+      //   rfpPage.close()
+      // }, 8000);
     }
    
     callback({ cancel: false, requestHeaders: details.requestHeaders })
 
   })
+  // setTimeout(() => {
+  //   rfpPage.close()
+  // }, 10000);
+  
 }
 
 

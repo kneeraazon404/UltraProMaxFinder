@@ -30,12 +30,12 @@ proposalPage.addEventListener('click', async () => {
   const proposalTemplate = await window.electronAPI.readTemplate('templates/proposal.html');
   contentContainer.innerHTML = proposalTemplate;
   let  templateInput=document.querySelector('#savedTemplateText');
-  let  messageTemplateInput=document.querySelector('#savedMessageTemplate');
+  let  messageTemplateInput=document.querySelector('#savedExcelUrl');
 
   
   let textArr=await window.electronAPI.readTemplateText();
   console.log(textArr);
-  let textMessage=await window.electronAPI.readTemplateText('messageTemplate.txt');
+  let textMessage=await window.electronAPI.readTemplateText('excelUrl.txt');
   let selectElement=document.querySelector('#savedTemplate');
   console.log(selectElement)
   selectElement.addEventListener('change',(event)=>{
@@ -82,16 +82,18 @@ document.addEventListener('submit',async (event) => {
     }
     else alert("Something went wrong")
   }
-  if (event.target.id == 'textInputFormMessage') {
+  if (event.target.id == 'ExcelUrlInput') {
     event.preventDefault();
-    let data = document.getElementById('templatemessagetext').value;
-    isSuccessful=await window.electronAPI.saveTemplate(data,'messageTemplate.txt')
+    let data = document.getElementById('excelUrlToSave').value;
+    isSuccessful=await window.electronAPI.saveTemplate(data,'excelUrl.txt')
     if(isSuccessful){
-      alert("Template Saved Successfully");
+      alert("Url Saved Successfully");
       proposalPage.click();
     }
     else alert("Something went wrong")
   }
+  
+
 });
 
 document.addEventListener('click', async (event) => {
@@ -246,9 +248,12 @@ async function getAccountList() {
 
 
   rpfData = await window.electronAPI.readExcelFile(originalData[0]?.username);
-  if (!rpfData.length) {
-    body.querySelector('#download-excel').style.display = 'none';
+  if(rpfData===403){
+    alert("You don't have permission to access the google sheet.\n Please give the right permission or change to the right URL");
   }
+  // if (!rpfData.length) {
+  //   body.querySelector('#download-excel').style.display = 'none';
+  // }
   tableBody.innerHTML = data;
   contentContainer.innerHTML = body.documentElement.outerHTML;
 
