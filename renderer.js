@@ -245,9 +245,16 @@ async function getAccountList() {
   </td>
   </tr>`);
   data = data.join('\n');
-
-
+ let rpfData=null;
+try {
   rpfData = await window.electronAPI.readExcelFile(originalData[0]?.username);
+
+  
+} catch (error) {
+  console.log('File not found')
+  
+}
+
   if(rpfData===403){
     alert("You don't have permission to access the google sheet.\n Please give the right permission or change to the right URL");
   }
