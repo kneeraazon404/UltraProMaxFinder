@@ -28,11 +28,13 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
     let projectDetails = questions.map((question) => `${question.question}\n${question.answer.textualAnswer}\n`).join('\n')
 
     const spaceIndexInName = clientName.indexOf(' ');
+    let timenow=new Date();
     proposalsArr.push({
-      'Title':jobProviderDesignation,'Job Type':jobType,'Proposal URL':projectUrl,'Proposal Date': `${jobCreatedDate.getFullYear()}-${(jobCreatedDate.getMonth() + 1).toString().padStart(2, '0')}-${jobCreatedDate.getDate().toString().padStart(2, '0')}`,'Proposal Time':`${jobCreatedDate.getHours().toString().padStart(2, '0')}:${jobCreatedDate.getMinutes().toString().padStart(2, '0')}`, 'Client First Name':clientName.slice(0,spaceIndexInName),'Client Last Name':clientName.slice(spaceIndexInName + 1),'Client Location':location,"Client Profile":jobProviderLinkedIn,"First Followup":""})
+      'Title':jobProviderDesignation,'Job Type':jobType,'Proposal URL':projectUrl,'Proposal Date': `${jobCreatedDate?.getFullYear()??timenow.getFullYear()}-${(jobCreatedDate.getMonth() + 1).toString().padStart(2, '0')}-${jobCreatedDate.getDate().toString().padStart(2, '0')}`,'Proposal Time':`${jobCreatedDate.getHours().toString().padStart(2, '0')}:${jobCreatedDate.getMinutes().toString().padStart(2, '0')}`, 'Client First Name':clientName.slice(0,spaceIndexInName),'Client Last Name':clientName.slice(spaceIndexInName + 1),'Client Location':location,"Client Profile":jobProviderLinkedIn,"First Followup":""})
   });
   mainWindow.webContents.send('rfpCurrent', username);
   if (proposals.length) {
+
     writeDataToGoogleSheet(proposalsArr, username, app).catch((err) => {
       console.error('Error inserting data into Excel:', err);
     });
@@ -57,6 +59,7 @@ async function submitProposals(proposals, session, headers, app, data, page) {
 
 
   proposals.forEach(async proposal => {
+    console.log(proposal)
 
     let urn = proposal.entityUrn;
     // console.log(urn);dispatchEventw;
@@ -91,12 +94,31 @@ async function submitProposals(proposals, session, headers, app, data, page) {
         
       let browser = await puppeteer.launch({headless: false});
       let messagePage = await browser.newPage();
+      
       await messagePage.setCookie(...cookies)
-      await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`);
+      await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`,{ timeout: 10000 });
+      setTimeout(()=>{},5000);
       await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
+      await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+
+      await messagePage.click('li-icon[type="chevron-down"]');
       await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])');
       let textToType=getSavedTemplate(app,)[jobType.toLowerCase()]??getSavedTemplate(app,)['default'];
-      await messagePage.waitForSelector('textarea');
+      try {
+        await messagePage.waitForSelector('textarea');
+      } catch ( error) {
+        console.log(error);
+        // if(error instanceof puppeteer.PuppeteerErrors.TimeoutError){
+          await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`);
+          await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
+          await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+          await messagePage.click('li-icon[type="chevron-down"]');
+          await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])')
+        // }
+        await messagePage.waitForSelector('textarea');
+
+        
+      }      
       await messagePage.click('textarea');
       await messagePage.keyboard.type(textToType);
       setTimeout(()=>{},5000);
@@ -115,6 +137,7 @@ async function submitProposals(proposals, session, headers, app, data, page) {
       }
       await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Submit'])");
       await messagePage.click("::-p-xpath(.//button//span[text()='Submit'])");
+      setTimeout(()=>{},5000);
       await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Message'])");
       await messagePage.click("::-p-xpath(.//button//span[text()='Message'])");
       setTimeout(()=>{},5000);

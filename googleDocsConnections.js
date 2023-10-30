@@ -185,6 +185,7 @@ if(isCreated)
   
       return data;
     } catch (error) {
+      console.log(error)
       console.error('Error reading data:', error.response?.status);
       return error.response?.status;
     }
