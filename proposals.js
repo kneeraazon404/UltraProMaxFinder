@@ -12,9 +12,9 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
   const proposals = data.included.filter((item) => item.$type == 'com.linkedin.voyager.dash.marketplaces.projects.MarketplaceProject')
   // const filter=(proposals,property)=>proposals[property]
   proposals.forEach(proposal => {
-    let locationUrn=proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header['*locationResolutionResult'];
-    let location=data.included.filter(item=>item.entityUrn==locationUrn)[0].defaultLocalizedNameWithoutCountryName
-    let projectUrl=`https://www.linkedin.com/service-marketplace/projects/${proposal.entityUrn.match(/\((\d+),/)[1]}`;
+    let locationUrn = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header['*locationResolutionResult'];
+    let location = data.included.filter(item => item.entityUrn == locationUrn)[0].defaultLocalizedNameWithoutCountryName
+    let projectUrl = `https://www.linkedin.com/service-marketplace/projects/${proposal.entityUrn.match(/\((\d+),/)[1]}`;
     let Title = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text
     let jobCreatedDate = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.insight?.text
     jobCreatedDate = parseRelativeTime(jobCreatedDate)
@@ -28,17 +28,17 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
     let projectDetails = questions.map((question) => `${question.question}\n${question.answer.textualAnswer}\n`).join('\n')
 
     const spaceIndexInName = clientName.indexOf(' ');
-    let timenow=new Date();
+    let timenow = new Date();
     proposalsArr.push({
-      'Title':jobProviderDesignation,'Job Type':jobType,'Proposal URL':projectUrl,'Proposal Date': `${jobCreatedDate?.getFullYear()??timenow.getFullYear()}-${(jobCreatedDate.getMonth() + 1).toString().padStart(2, '0')}-${jobCreatedDate.getDate().toString().padStart(2, '0')}`,'Proposal Time':`${jobCreatedDate.getHours().toString().padStart(2, '0')}:${jobCreatedDate.getMinutes().toString().padStart(2, '0')}`, 'Client First Name':clientName.slice(0,spaceIndexInName),'Client Last Name':clientName.slice(spaceIndexInName + 1),'Client Location':location,"Client Profile":jobProviderLinkedIn,"First Followup":""})
+      'Title': jobProviderDesignation, 'Job Type': jobType, 'Proposal URL': projectUrl, 'Proposal Date': `${jobCreatedDate?.getFullYear() ?? timenow.getFullYear()}-${(jobCreatedDate.getMonth() + 1).toString().padStart(2, '0')}-${jobCreatedDate.getDate().toString().padStart(2, '0')}`, 'Proposal Time': `${jobCreatedDate.getHours().toString().padStart(2, '0')}:${jobCreatedDate.getMinutes().toString().padStart(2, '0')}`, 'Client First Name': clientName.slice(0, spaceIndexInName), 'Client Last Name': clientName.slice(spaceIndexInName + 1), 'Client Location': location, "Client Profile": jobProviderLinkedIn, "First Followup": ""
+    })
   });
   mainWindow.webContents.send('rfpCurrent', username);
   if (proposals.length) {
-
+    submitProposals(proposals, linkedInSession, headers, app, data, page);
     writeDataToGoogleSheet(proposalsArr, username, app).catch((err) => {
       console.error('Error inserting data into Excel:', err);
     });
-    submitProposals(proposals, linkedInSession, headers, app, data, page);
   }
   else {
     // setTimeout(() => {
@@ -59,107 +59,81 @@ async function submitProposals(proposals, session, headers, app, data, page) {
 
 
   proposals.forEach(async proposal => {
-    console.log(proposal)
 
     let urn = proposal.entityUrn;
     // console.log(urn);dispatchEventw;
-    let jobType=proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text;
+    let jobType = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text;
 
     // write the case for the subcases
-    let isResumeProposal= proposal.detailViewSectionsResolutionResults.filter((item) => item.description?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsDescription')[0].description.questionnaireQuestions.find(item=>item.question==='What type of resume?');
+    let isResumeProposal = proposal.detailViewSectionsResolutionResults.filter((item) => item.description?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsDescription')[0].description.questionnaireQuestions.find(item => item.question === 'Where are you in your career?');
 
     // console.log(isResumeProposal);
 
-    if(isResumeProposal){
-      let regexBoth=/Linkedin.*traditional|traditional.*linkedin/i;
-      let regexLinkedIn=/Linkedin/i;
-      let regexTraditional=/traditional/i;
-      if (regexBoth.test(isResumeProposal.answer.textualAnswer)){
-        jobType='resume review both';
-      }
-      else if(regexLinkedIn.test(isResumeProposal.answer.textualAnswer)){
-        jobType='resume review linkedin';
-      }
-      else if(regexTraditional.test(isResumeProposal.answer.textualAnswer)){
-        jobType='resume review traditional';
-      }
-
-    }
 
 
     try {
-      let regex=/\d+/;
-      let urnId=urn.match(regex);
-      let cookies=await session.cookies.get({});
-        
-      let browser = await puppeteer.launch({headless: false});
+      let regex = /\d+/;
+      let urnId = urn.match(regex);
+      let cookies = await session.cookies.get({});
+
+      let browser = await puppeteer.launch({ headless: false });
       let messagePage = await browser.newPage();
-      
+
       await messagePage.setCookie(...cookies)
-      await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`,{ timeout: 10000 });
-      setTimeout(()=>{},5000);
-      await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
-      await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+      await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`, { timeout: 10000 });
+      setTimeout(() => { }, 5000);
+      let regexBoth = /Late career|Mid career/i;
 
-      await messagePage.click('li-icon[type="chevron-down"]');
-      await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])');
-      let textToType=getSavedTemplate(app,)[jobType.toLowerCase()]??getSavedTemplate(app,)['default'];
-      try {
-        await messagePage.waitForSelector('textarea');
-      } catch ( error) {
-        console.log(error);
-        // if(error instanceof puppeteer.PuppeteerErrors.TimeoutError){
-          await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`);
-          await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
-          await messagePage.waitForSelector('li-icon[type="chevron-down"]');
-          await messagePage.click('li-icon[type="chevron-down"]');
-          await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])')
-        // }
-        await messagePage.waitForSelector('textarea');
-
-        
-      }      
-      await messagePage.click('textarea');
-      await messagePage.keyboard.type(textToType);
-      setTimeout(()=>{},5000);
-
-      let elementToScrollTo=await messagePage.waitForSelector("button[data-test-proposal-submission-modal__submit-button]");
-      console.log(elementToScrollTo);
-      if (elementToScrollTo!==null) {
+      if (isResumeProposal&&(!(regexBoth.test(isResumeProposal.answer.textualAnswer)))) {
+        // let regexLinkedIn=/Linkedin/i;
+        // let regexTraditional=/traditional/i;
       
-        // Scroll the element into view
-        
-        await messagePage.evaluate(element => {
-          element.scrollIntoView();
-        }, elementToScrollTo);
-      } else {
-        console.log('Element not found.');
-      }
-      await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Submit'])");
-      await messagePage.click("::-p-xpath(.//button//span[text()='Submit'])");
-      setTimeout(()=>{},5000);
-      await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Message'])");
-      await messagePage.click("::-p-xpath(.//button//span[text()='Message'])");
-      setTimeout(()=>{},5000);
-      await messagePage.waitForSelector("::-p-xpath(.//button[@type='submit'][text()='Send'])");
-      await messagePage.click("::-p-xpath(.//button[@type='submit'][text()='Send'])")
-      setTimeout(async ()=>{
-        await messagePage.close();
-        await browser.close();
-      },5000);
+          try {
 
-      // if(page instanceof BrowserWindow){
-      //         setTimeout(() => {
-      //          page.close()
-      //        }, 5000);
-      //       }
+            await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
+            await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+
+            await messagePage.click('li-icon[type="chevron-down"]');
+            await messagePage.click('::-p-xpath(.//button//span[text()="No thanks"])');
+
+
+
+
+          } catch (error) {
+
+            console.log(error)
+            await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`);
+            await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
+            await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+            await messagePage.click('li-icon[type="chevron-down"]');
+            await messagePage.click('::-p-xpath(.//button//span[text()="No thanks"])');
+
+          }
+          setTimeout(async () => {
+            await messagePage.close();
+            await browser.close();
+          }, 5000);
+      
+        // else if(regexLinkedIn.test(isResumeProposal.answer.textualAnswer)){
+        //   jobType='resume review linkedin';
+        // }
+        // else if(regexTraditional.test(isResumeProposal.answer.textualAnswer)){
+        //   jobType='resume review traditional';
+        // }
+      }
+      else if(regexBoth.test(isResumeProposal.answer.textualAnswer) ) {
+        submitMessageAndProposal(browser,messagePage,app,jobType,urnId);
+      }
+      else{
+        submitMessageAndProposal(browser,messagePage,app,jobType,urnId);
+      }
     } catch (error) {
       console.log(error)
-      
+
     }
 
 
-      // DeviceOrientationEvedfjsdnfkjd;
+    // DeviceOrientationEvedfjsdnfkjd;
 
 
     // try {
@@ -212,9 +186,65 @@ async function submitProposals(proposals, session, headers, app, data, page) {
   });
 
   // after submitting proposal we need to send immediate message here
-
-
 }
+
+
+async function submitMessageAndProposal(browser,messagePage,app,jobType,urnId){
+  await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
+        await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+
+        await messagePage.click('li-icon[type="chevron-down"]');
+        await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])');
+        let textToType = getSavedTemplate(app,)[jobType.toLowerCase()] ?? getSavedTemplate(app,)['default'];
+        console.log(textToType)
+        try {
+          await messagePage.waitForSelector('textarea');
+        } catch (error) {
+          console.log(error);
+          // if(error instanceof puppeteer.PuppeteerErrors.TimeoutError){
+          await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`);
+          await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
+          await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+          await messagePage.click('li-icon[type="chevron-down"]');
+          await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])')
+          // }
+          await messagePage.waitForSelector('textarea');
+
+
+        }
+        await messagePage.click('textarea');
+        await messagePage.keyboard.type(textToType);
+        setTimeout(() => { }, 5000);
+
+        let elementToScrollTo = await messagePage.waitForSelector("button[data-test-proposal-submission-modal__submit-button]");
+        console.log(elementToScrollTo);
+        if (elementToScrollTo !== null) {
+
+          // Scroll the element into view
+
+          await messagePage.evaluate(element => {
+            element.scrollIntoView();
+          }, elementToScrollTo);
+        } else {
+          console.log('Element not found.');
+        }
+        await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Submit'])");
+        await messagePage.click("::-p-xpath(.//button//span[text()='Submit'])");
+        setTimeout(() => { }, 5000);
+        await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Message'])");
+        await messagePage.click("::-p-xpath(.//button//span[text()='Message'])");
+        setTimeout(() => { }, 5000);
+        await messagePage.waitForSelector("::-p-xpath(.//button[@type='submit'][text()='Send'])");
+        await messagePage.click("::-p-xpath(.//button[@type='submit'][text()='Send'])")
+        setTimeout(async () => {
+          await messagePage.close();
+          await browser.close();
+        }, 5000);
+}
+
+
+
+
 
 
 function parseRelativeTime(relativeTime) {
@@ -285,23 +315,23 @@ async function sendImmediateMessage(session, data, app, page) {
             return filteredId === entityUrn;
           })[0];
           // let originToken = requiredMessengerProfile.messages.elements[0].originToken;
-          
-          let cookies=await session.cookies.get({})
-        
-          let browser = await puppeteer.launch({headless: false});
+
+          let cookies = await session.cookies.get({})
+
+          let browser = await puppeteer.launch({ headless: false });
           let messagePage = await browser.newPage();
           await messagePage.setCookie(...cookies)
           await messagePage.goto(requiredMessengerProfile.conversationUrl);
-          let divSelector='.msg-form__contenteditable';
+          let divSelector = '.msg-form__contenteditable';
           await messagePage.waitForSelector(divSelector);
           await messagePage.click(divSelector);
-          let textToType=getSavedTemplate(app, 'messageTemplate.txt')
+          let textToType = getSavedTemplate(app, 'messageTemplate.txt')
           await messagePage.keyboard.type(textToType)
-          setTimeout(()=>{},2000)
+          setTimeout(() => { }, 2000)
           await messagePage.click('.msg-form__send-button')
-          setTimeout(()=>{
+          setTimeout(() => {
             browser.close()
-          },5000)
+          }, 5000)
           // if (originToken === null) {
           //   page.loadURL(requiredMessengerProfile.conversationUrl)
           //   page.webContents.on('did-finish-load', () => {
@@ -387,7 +417,7 @@ async function sendImmediateMessage(session, data, app, page) {
 }
 
 
-function sendMessage(){
+function sendMessage() {
 
 }
 
