@@ -5,7 +5,7 @@ const { BrowserWindow } = require('electron');
 const puppeteer = require('puppeteer');
 
 
-async function extractProposals(data, username, page, linkedInSession, headers, app, mainWindow) {
+async function extractProposals(data, username, page, linkedInSession, headers, app, mainWindow,linkedInSessionPartitionName,browser) {
 
 
   const proposalsArr = [];
@@ -35,7 +35,8 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
   });
   mainWindow.webContents.send('rfpCurrent', username);
   if (proposals.length) {
-    submitProposals(proposals, linkedInSession, headers, app, data, page);
+    console.log(proposals.length)
+    submitProposals(proposals, linkedInSession, headers, app, data, page,browser);
     writeDataToGoogleSheet(proposalsArr, username, app).catch((err) => {
       console.error('Error inserting data into Excel:', err);
     });
@@ -51,7 +52,7 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
 }
 
 
-async function submitProposals(proposals, session, headers, app, data, page) {
+async function submitProposals(proposals, session, headers, app, data, page,_) {
   // const { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,
   //   'x-li-pem-metadata': xlipenmetadata, 'x-li-track': xlitrack, } = { ...headers }
 
@@ -63,7 +64,7 @@ async function submitProposals(proposals, session, headers, app, data, page) {
     let urn = proposal.entityUrn;
     // console.log(urn);dispatchEventw;
     let jobType = proposal.detailViewSectionsResolutionResults.filter((item) => item.header?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsHeader')[0].header.title.text;
-
+    let creatorName= proposal.detailViewSectionsResolutionResults.filter((item) => item.creatorInformation?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsCreator')[0].creatorInformation.serviceRequesterEntityLockup.title.text;
     // write the case for the subcases
     let isResumeProposal = proposal.detailViewSectionsResolutionResults.filter((item) => item.description?.$type == 'com.linkedin.voyager.dash.marketplaces.projectdetailsview.MarketplaceProjectDetailsViewSectionsDescription')[0].description.questionnaireQuestions.find(item => item.question === 'Where are you in your career?');
 
@@ -75,8 +76,8 @@ async function submitProposals(proposals, session, headers, app, data, page) {
       let regex = /\d+/;
       let urnId = urn.match(regex);
       let cookies = await session.cookies.get({});
-
       let browser = await puppeteer.launch({ headless: false });
+
       let messagePage = await browser.newPage();
 
       await messagePage.setCookie(...cookies)
@@ -122,10 +123,10 @@ async function submitProposals(proposals, session, headers, app, data, page) {
         // }
       }
       else if(regexBoth.test(isResumeProposal.answer.textualAnswer) ) {
-        submitMessageAndProposal(browser,messagePage,app,jobType,urnId);
+        submitMessageAndProposal(browser,messagePage,app,jobType,urnId,creatorName);
       }
       else{
-        submitMessageAndProposal(browser,messagePage,app,jobType,urnId);
+        submitMessageAndProposal(browser,messagePage,app,jobType,urnId,creatorName);
       }
     } catch (error) {
       console.log(error)
@@ -184,19 +185,22 @@ async function submitProposals(proposals, session, headers, app, data, page) {
     // }
 
   });
+  
+
 
   // after submitting proposal we need to send immediate message here
 }
 
 
-async function submitMessageAndProposal(browser,messagePage,app,jobType,urnId){
+async function submitMessageAndProposal(browser,messagePage,app,jobType,urnId,creatorName){
   await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
         await messagePage.waitForSelector('li-icon[type="chevron-down"]');
 
         await messagePage.click('li-icon[type="chevron-down"]');
         await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])');
         let textToType = getSavedTemplate(app,)[jobType.toLowerCase()] ?? getSavedTemplate(app,)['default'];
-        console.log(textToType)
+
+        textToType=textToType.replace(/<first_name>|\(first_name\)/g,creatorName.split(' ')[0]??creatorName)
         try {
           await messagePage.waitForSelector('textarea');
         } catch (error) {
@@ -234,6 +238,17 @@ async function submitMessageAndProposal(browser,messagePage,app,jobType,urnId){
         await messagePage.waitForSelector("::-p-xpath(.//button//span[text()='Message'])");
         await messagePage.click("::-p-xpath(.//button//span[text()='Message'])");
         setTimeout(() => { }, 5000);
+        let savedMessage = getSavedTemplate(app, 'messageTemplate.txt');
+        savedMessage=savedMessage.replace(/<first_name>|\(first_name\)/g,creatorName.split(' ')[0]??creatorName)
+
+        if(savedMessage != ''){
+          await messagePage.evaluate((selector) => {
+            document.querySelector(selector).textContent = savedMessage;
+          }, elementSelector);
+
+        }
+      
+
         await messagePage.waitForSelector("::-p-xpath(.//button[@type='submit'][text()='Send'])");
         await messagePage.click("::-p-xpath(.//button[@type='submit'][text()='Send'])")
         setTimeout(async () => {

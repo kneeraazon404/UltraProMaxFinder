@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, session,dialog } = require('electron');
 const fs = require('fs').promises;
 const { ToadScheduler, SimpleIntervalJob, AsyncTask } = require('toad-scheduler')
 const schedule = require('node-schedule');
+const puppeteer = require('puppeteer');
+
 const chokidar = require('chokidar');
 
 
@@ -74,23 +76,46 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
   })
   // rfpPage.webContents.openDevTools({ mode: 'detach' })
 
-  rfpPage.loadURL('https://www.linkedin.com/service-marketplace/provider/requests')
+  let cookies = await linkedInSession.cookies.get({});
+
+  let browser = await puppeteer.launch({ headless: false,maxConcurrency: 1  });
+  let messagePage = await browser.newPage();
+
+  await messagePage.setCookie(...cookies)
+  await messagePage.goto('https://www.linkedin.com/service-marketplace/provider/requests', { timeout: 10000 });
+  setTimeout(() => { }, 5000);
+
+  // rfpPage.loadURL('https://www.linkedin.com/service-marketplace/provider/requests')
   // rfpPage.once('ready-to-show', () => {
   //   rfpPage.show()
   // })
-  linkedInSession.webRequest.onBeforeSendHeaders({ urls: ['https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(count:20,start:0)&&queryId=voyagerMarketplacesDashMarketplaceProjects.*'], types: ['xhr'] }, async (details, callback) => {
-    // Log headers
+  const capturedRequests = [];
 
-    const { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,
-      'x-li-pem-metadata': xlipenmetadata, 'x-li-track': xlitrack, } = { ...details.requestHeaders }
 
-    try {
-      const res = await linkedInSession.fetch(details.url, {
-        headers: { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,'x-li-pem-metadata':xlipenmetadata },
+  // await messagePage.setRequestInterception(true);
+  while(capturedRequests.length<1){
+    await messagePage.goto('https://www.linkedin.com/service-marketplace/provider/requests', { timeout: 10000 });
+  setTimeout(() => { }, 5000);
+    messagePage.on('response', async (interceptedResponse) => {
+      const responseData = interceptedResponse;
+      let regexToMatch=/.*voyagerMarketplacesDashMarketplaceProjects/
+      if (responseData.request().resourceType() === 'xhr' && regexToMatch.test(responseData.url()) && responseData.request().method() !== 'OPTIONS') {
+
+        // Store the request in the array for later analysis if needed
+        capturedRequests.push(interceptedResponse);
+      }
+    })
+  }
+    let proposalsAPI=capturedRequests[0];
+      try {
+      const res = await linkedInSession.fetch(proposalsAPI.url(), {
+        headers: proposalsAPI.request().headers(),
       })
       if (res.ok) {
-        const body = await res.json();        // use this to get all the pending requests
-      await extractProposals(body,username,rfpPage,linkedInSession,details.requestHeaders,app,mainWindow,linkedInSessionPartitionName)
+        const body = await res.json();   
+        await messagePage.close();
+        await browser.close()
+      await extractProposals(body,username,rfpPage,linkedInSession,proposalsAPI.headers(),app,mainWindow,linkedInSessionPartitionName,browser)
 
       }
       else {
@@ -108,10 +133,47 @@ async function extractRequestForProposals(event, username,app,mainWindow) {
       //   rfpPage.close()
       // }, 8000);
     }
-   
-    callback({ cancel: false, requestHeaders: details.requestHeaders })
 
-  })
+
+
+
+  // Array to store captured requests
+
+  // linkedInSession.webRequest.onBeforeSendHeaders({ urls: ['https://www.linkedin.com/voyager/api/graphql?includeWebMetadata=true&variables=(count:20,start:0)&&queryId=voyagerMarketplacesDashMarketplaceProjects.*'], types: ['xhr'] }, async (details, callback) => {
+  //   // Log headers
+
+  //   const { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,
+  //     'x-li-pem-metadata': xlipenmetadata, 'x-li-track': xlitrack, } = { ...details.requestHeaders }
+
+  //   try {
+  //     const res = await linkedInSession.fetch(details.url, {
+  //       headers: { accept, 'accept-language': acceptLanguage, 'csrf-token': csrfToken, 'x-li-lang': xlilang, 'x-li-page-instance': xlipageinstance,'x-li-pem-metadata':xlipenmetadata },
+  //     })
+  //     if (res.ok) {
+  //       const body = await res.json();    
+  //       console.log(body)    // use this to get all the pending requests
+  //     await extractProposals(body,username,rfpPage,linkedInSession,details.requestHeaders,app,mainWindow,linkedInSessionPartitionName)
+
+  //     }
+  //     else {
+  //       console.log(res)
+  //       // setTimeout(() => {
+  //       //   rfpPage.close()
+  //       // }, 8000);
+  
+
+  //     }
+    
+  //   } catch (error) {
+  //     console.log(error);
+  //     // setTimeout(() => {
+  //     //   rfpPage.close()
+  //     // }, 8000);
+  //   }
+   
+  //   callback({ cancel: false, requestHeaders: details.requestHeaders })
+
+  // })
   // setTimeout(() => {
   //   rfpPage.close()
   // }, 10000);

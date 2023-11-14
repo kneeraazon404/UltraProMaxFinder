@@ -50,15 +50,20 @@
         <p id="savedExcelUrl"></p>
     </div>
 
+
+  
+
+
+
     </div>
 
 
-<!-- <div class="container" style="margin-left: 2rem; margin-top: 2rem;margin-bottom: 1rem;">
-    <form id="textInputFormMessage">
+<div class="container" style="margin-left: 2rem; margin-top: 2rem;margin-bottom: 1rem;">
+    <form id="messageInputForm">
         <div class="form-group">
             <h3 class="h3">REPLY MESSAGE TEMPLATE</h3>
             <label for="text">Enter instant message to send:</label>
-            <textarea class="form-control" id="templatemessagetext" rows="30" cols="30" aria-label="With textarea" placeholder="Enter template"></textarea> 
+            <textarea class="form-control" id="messageToSave" rows="30" cols="30" aria-label="With textarea" placeholder="Enter template"></textarea> 
         </div>
         <br>
         <button type="submit" class="btn btn-primary">Save Template</button>
@@ -67,6 +72,14 @@
     <br>
     <div>
         <h3 class="h3">Saved Template</h3>
-        <p id="savedMessageTemplate"></p>
+        <p id="savedMessageContent"></p>
     </div>
-</div> -->
+    <div style="margin-bottom: 1rem;">
+        <button class="btn btn-primary" id="updateMessageTemplate">
+            Edit
+        </button>
+        <button class="btn btn-danger" id="deleteMessageTemplate">
+            Delete
+        </button>
+    </div>
+</div>

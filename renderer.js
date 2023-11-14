@@ -30,12 +30,14 @@ proposalPage.addEventListener('click', async () => {
   const proposalTemplate = await window.electronAPI.readTemplate('templates/proposal.html');
   contentContainer.innerHTML = proposalTemplate;
   let  templateInput=document.querySelector('#savedTemplateText');
-  let  messageTemplateInput=document.querySelector('#savedExcelUrl');
+  let  excelInputURL=document.querySelector('#savedExcelUrl');
+  let messageTemplateInput=document.querySelector('#savedMessageContent')
 
   
   let textArr=await window.electronAPI.readTemplateText();
   console.log(textArr);
-  let textMessage=await window.electronAPI.readTemplateText('excelUrl.txt');
+  let excelURL=await window.electronAPI.readTemplateText('excelUrl.txt');
+  let textMessage=await window.electronAPI.readTemplateText('messageTemplate.txt');
   let selectElement=document.querySelector('#savedTemplate');
   console.log(selectElement)
   selectElement.addEventListener('change',(event)=>{
@@ -51,8 +53,12 @@ proposalPage.addEventListener('click', async () => {
     templateInput.innerHTML=textArr[templateTitle];
     })
   }
+  if(excelURL?.length){
+    excelInputURL.innerHTML=excelURL;
+  }
   if(textMessage?.length){
     messageTemplateInput.innerHTML=textMessage;
+
   }
 });
 
@@ -92,7 +98,16 @@ document.addEventListener('submit',async (event) => {
     }
     else alert("Something went wrong")
   }
-  
+  if (event.target.id == 'messageInputForm') {
+    event.preventDefault();
+    let data = document.getElementById('messageToSave').value;
+    isSuccessful=await window.electronAPI.saveTemplate(data,'messageTemplate.txt')
+    if(isSuccessful){
+      alert("Url Saved Successfully");
+      proposalPage.click();
+    }
+    else alert("Something went wrong")
+  }
 
 });
 
@@ -134,6 +149,29 @@ document.addEventListener('click', async (event) => {
     document.getElementById('templateTitle').disabled=true;
     document.getElementById('templateTitle').value=selectElement.options[selectElement.selectedIndex].text;
     document.getElementById('templatetext').value=selectElement.value;
+  }
+  if(event.target.id==='updateMessageTemplate'){
+    let message=document.querySelector('#savedMessageContent');
+    if(message.textContent===''){
+      alert("No Saved Template Found");
+      return;
+    }
+    document.getElementById('messageToSave').value=message.textContent;
+  }
+  if(event.target.id=='deleteMessageTemplate'){
+    let selectElement=document.querySelector('#savedMessageContent');
+    if(selectElement.textContent.length===0){
+      alert("No Saved Template Found");
+      return;
+    }
+    var result = confirm(`Are you sure to delete message?`);
+    if(result){
+     let isSuccessful= await window.electronAPI.saveTemplate('','messageTemplate.txt');
+     if(isSuccessful){
+      proposalPage.click();
+      alert("Deleted Successfully.")
+     }
+    }
   }
   if(event.target.id=='deleteTemplate'){
     let selectElement=document.querySelector('#savedTemplate');
