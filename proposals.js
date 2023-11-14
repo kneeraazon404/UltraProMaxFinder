@@ -3,6 +3,8 @@ const { getSavedTemplate } = require('./templateFunctions')
 const { writeDataToGoogleSheet } = require('./googleDocsConnections');
 const { BrowserWindow } = require('electron');
 const puppeteer = require('puppeteer');
+const os=require('os');
+
 
 
 async function extractProposals(data, username, page, linkedInSession, headers, app, mainWindow,linkedInSessionPartitionName,browser) {
@@ -30,7 +32,7 @@ async function extractProposals(data, username, page, linkedInSession, headers, 
     const spaceIndexInName = clientName.indexOf(' ');
     let timenow = new Date();
     proposalsArr.push({
-      'Title': jobProviderDesignation, 'Job Type': jobType, 'Proposal URL': projectUrl, 'Proposal Date': `${jobCreatedDate?.getFullYear() ?? timenow.getFullYear()}-${(jobCreatedDate.getMonth() + 1).toString().padStart(2, '0')}-${jobCreatedDate.getDate().toString().padStart(2, '0')}`, 'Proposal Time': `${jobCreatedDate.getHours().toString().padStart(2, '0')}:${jobCreatedDate.getMinutes().toString().padStart(2, '0')}`, 'Client First Name': clientName.slice(0, spaceIndexInName), 'Client Last Name': clientName.slice(spaceIndexInName + 1), 'Client Location': location, "Client Profile": jobProviderLinkedIn, "First Followup": ""
+      'Title': jobProviderDesignation, 'Job Type': jobType, 'Proposal URL': projectUrl, 'Proposal Date': `${jobCreatedDate?.getFullYear() ?? timenow.getFullYear()}-${(jobCreatedDate.getMonth()??timenow.getMonth() + 1).toString().padStart(2, '0')}-${jobCreatedDate.getDate().toString().padStart(2, '0')}`, 'Proposal Time': `${jobCreatedDate.getHours().toString().padStart(2, '0')}:${jobCreatedDate.getMinutes().toString().padStart(2, '0')}`, 'Client First Name': clientName.slice(0, spaceIndexInName), 'Client Last Name': clientName.slice(spaceIndexInName + 1), 'Client Location': location, "Client Profile": jobProviderLinkedIn, "First Followup": ""
     })
   });
   mainWindow.webContents.send('rfpCurrent', username);
@@ -57,6 +59,9 @@ async function submitProposals(proposals, session, headers, app, data, page,_) {
   //   'x-li-pem-metadata': xlipenmetadata, 'x-li-track': xlitrack, } = { ...headers }
 
 
+  let browser;
+  browser = await puppeteer.launch({ headless: false });
+
 
 
   proposals.forEach(async proposal => {
@@ -76,7 +81,6 @@ async function submitProposals(proposals, session, headers, app, data, page,_) {
       let regex = /\d+/;
       let urnId = urn.match(regex);
       let cookies = await session.cookies.get({});
-      let browser = await puppeteer.launch({ headless: false });
 
       let messagePage = await browser.newPage();
 
@@ -85,17 +89,30 @@ async function submitProposals(proposals, session, headers, app, data, page,_) {
       setTimeout(() => { }, 5000);
       let regexBoth = /Late career|Mid career/i;
 
-      if (isResumeProposal&&(!(regexBoth.test(isResumeProposal.answer.textualAnswer)))) {
+      if (isResumeProposal&&(!(regexBoth.test(isResumeProposal?.answer?.textualAnswer)))) {
         // let regexLinkedIn=/Linkedin/i;
         // let regexTraditional=/traditional/i;
       
           try {
 
             await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
-            await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+            const element = await messagePage.$('li-icon[type="chevron-down"]');
+            if(element){
+              await messagePage.click('li-icon[type="chevron-down"]');
+    
+            }
+            // await messagePage.waitForSelector('li-icon[type="chevron-down"]');
 
-            await messagePage.click('li-icon[type="chevron-down"]');
+            // await messagePage.click('li-icon[type="chevron-down"]');
             await messagePage.click('::-p-xpath(.//button//span[text()="No thanks"])');
+            await messagePage.waitForSelector('::-p-xpath(.//button/span[text()="Decline"])');
+
+            const element2 = await messagePage.$('li-icon[type="chevron-down"]');
+            if(element2){
+              await messagePage.click('::-p-xpath(.//button/span[text()="Decline"])');
+    
+            }
+
 
 
 
@@ -105,14 +122,29 @@ async function submitProposals(proposals, session, headers, app, data, page,_) {
             console.log(error)
             await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`);
             await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
-            await messagePage.waitForSelector('li-icon[type="chevron-down"]');
-            await messagePage.click('li-icon[type="chevron-down"]');
+            // await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+            // await messagePage.click('li-icon[type="chevron-down"]');
+            const element = await messagePage.$('li-icon[type="chevron-down"]');
+            if(element){
+              await messagePage.click('li-icon[type="chevron-down"]');
+            }
+            await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="No thanks"])');
+
             await messagePage.click('::-p-xpath(.//button//span[text()="No thanks"])');
+            setTimeout(() => { }, 5000);            
+            const element2 = await messagePage.$('li-icon[type="chevron-down"]');
+            if(element2){
+              await messagePage.click('::-p-xpath(.//button/span[text()="Decline"])');
+    
+            }
+
+
+            
 
           }
           setTimeout(async () => {
-            await messagePage.close();
-            await browser.close();
+            // await messagePage.close();
+            // await browser.close();
           }, 5000);
       
         // else if(regexLinkedIn.test(isResumeProposal.answer.textualAnswer)){
@@ -122,7 +154,7 @@ async function submitProposals(proposals, session, headers, app, data, page,_) {
         //   jobType='resume review traditional';
         // }
       }
-      else if(regexBoth.test(isResumeProposal.answer.textualAnswer) ) {
+      else if(regexBoth.test(isResumeProposal?.answer?.textualAnswer) ) {
         submitMessageAndProposal(browser,messagePage,app,jobType,urnId,creatorName);
       }
       else{
@@ -183,6 +215,9 @@ async function submitProposals(proposals, session, headers, app, data, page,_) {
     //   console.log(error);
 
     // }
+    // if (browser && browser.isConnected()) {
+    //   await browser.close();
+    // }
 
   });
   
@@ -194,13 +229,22 @@ async function submitProposals(proposals, session, headers, app, data, page,_) {
 
 async function submitMessageAndProposal(browser,messagePage,app,jobType,urnId,creatorName){
   await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
-        await messagePage.waitForSelector('li-icon[type="chevron-down"]');
 
-        await messagePage.click('li-icon[type="chevron-down"]');
+        const element = await messagePage.$('li-icon[type="chevron-down"]');
+        if(element){
+          await messagePage.click('li-icon[type="chevron-down"]');
+
+        }
+
+        // await messagePage.waitForSelector('li-icon[type="chevron-down"]');
+
         await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])');
-        let textToType = getSavedTemplate(app,)[jobType.toLowerCase()] ?? getSavedTemplate(app,)['default'];
+        let textToType = getSavedTemplate(app,'template.json')[jobType.toLowerCase()] ?? getSavedTemplate(app,)['default'];
+
 
         textToType=textToType.replace(/<first_name>|\(first_name\)/g,creatorName.split(' ')[0]??creatorName)
+        let overAllHTML = textToType.split('\n').map(line => `<p>${line}</p>`).join('');
+      
         try {
           await messagePage.waitForSelector('textarea');
         } catch (error) {
@@ -208,20 +252,22 @@ async function submitMessageAndProposal(browser,messagePage,app,jobType,urnId,cr
           // if(error instanceof puppeteer.PuppeteerErrors.TimeoutError){
           await messagePage.goto(`https://www.linkedin.com/service-marketplace/projects/${urnId}`);
           await messagePage.waitForSelector('::-p-xpath(.//button//span[text()="Submit proposal"])');
-          await messagePage.waitForSelector('li-icon[type="chevron-down"]');
-          await messagePage.click('li-icon[type="chevron-down"]');
-          await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])')
+          const element = await messagePage.$('li-icon[type="chevron-down"]');
+          if(element){
+            await messagePage.click('li-icon[type="chevron-down"]');
+  
+          }
+          await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"]/..)')
           // }
           await messagePage.waitForSelector('textarea');
 
 
         }
         await messagePage.click('textarea');
-        await messagePage.keyboard.type(textToType);
+        await messagePage.keyboard.type(overAllHTML);
         setTimeout(() => { }, 5000);
 
         let elementToScrollTo = await messagePage.waitForSelector("button[data-test-proposal-submission-modal__submit-button]");
-        console.log(elementToScrollTo);
         if (elementToScrollTo !== null) {
 
           // Scroll the element into view
@@ -239,12 +285,16 @@ async function submitMessageAndProposal(browser,messagePage,app,jobType,urnId,cr
         await messagePage.click("::-p-xpath(.//button//span[text()='Message'])");
         setTimeout(() => { }, 5000);
         let savedMessage = getSavedTemplate(app, 'messageTemplate.txt');
-        savedMessage=savedMessage.replace(/<first_name>|\(first_name\)/g,creatorName.split(' ')[0]??creatorName)
+     
 
-        if(savedMessage != ''){
+        if(savedMessage != null || savedMessage !=''){
+          savedMessage=savedMessage.replace(/<first_name>|\(first_name\)/g,creatorName.split(' ')[0]??creatorName)
+          let lines = savedMessage.split(os.EOL);
+          let paragraphs = lines.map(line => `<p>${line}</p>`);
+          let resultHTML = paragraphs.join('');
           await messagePage.evaluate((selector) => {
-            document.querySelector(selector).textContent = savedMessage;
-          }, elementSelector);
+            document.querySelector(selector).innerHTML = resultHTML;
+          }, '.msg-form__contenteditable');
 
         }
       

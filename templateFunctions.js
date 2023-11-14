@@ -1,6 +1,7 @@
 const fssync = require('fs');
 const fs = require('fs').promises;
 const path = require('path');
+const os=require('os');
 
 
 
@@ -10,7 +11,9 @@ function getSavedTemplate(app,filename='template.json'){
   try {
     data = fssync.readFileSync(filePath,'utf-8');
   } catch (error) {
-    console.log("File not found")
+    console.log(error.message)
+    console.log(error)
+
   }
   if(filename==='template.json'){
     return JSON.parse(data);
@@ -41,6 +44,7 @@ function getSavedTemplate(app,filename='template.json'){
    const filePath = path.join(app.getPath('userData'), filename);
    let success=true;
    try {
+    data = data.split('\n').join(os.EOL)
      await fs.writeFile(filePath, data);
    } catch (error) {
      console.log(error);
