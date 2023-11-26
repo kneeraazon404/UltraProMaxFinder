@@ -4,7 +4,7 @@ const { ToadScheduler, SimpleIntervalJob, AsyncTask } = require('toad-scheduler'
 const schedule = require('node-schedule');
 const puppeteer = require('puppeteer');
 
-const chokidar = require('chokidar');
+// const chokidar = require('chokidar');
 
 
 
@@ -212,10 +212,10 @@ async function readUserData(event) {
 app.whenReady().then(
   () => {
 
-    chokidar.watch(path.join(app.getPath('userData'), '*.txt', '*.json')).on('all', (event, path) => {
-      console.log('this is good')
-      mainWindow.webContents.reload();
-    });
+    // chokidar.watch(path.join(app.getPath('userData'), '*.txt', '*.json')).on('all', (event, path) => {
+    //   console.log('this is good')
+    //   mainWindow.webContents.reload();
+    // });
 
     //   writeData().then(out=>console.log(out)).catch(e=>console.log(e));
 
@@ -378,7 +378,7 @@ app.on('window-all-closed', () => {
 
 function createRequiredFiles(app) {
 
-  const fileNames = ['userInfo.json', 'schedules.json','pass.json']
+  const fileNames = ['userInfo.json', 'schedules.json','pass.json','credentials.json']
   const directoryPath = app.getPath('userData');
 
   fileNames.forEach((fileName) => {

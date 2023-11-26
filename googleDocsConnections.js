@@ -3,7 +3,7 @@ const {auth}=require('google-auth-library')
 const path=require('path');
 const { readFileSync } = require('fs');
 
-let credentials = JSON.parse(readFileSync("./credentials.json", "utf8"));
+let credentials = JSON.parse(readFileSync(__dirname+"/credentials.json", "utf8"));
 
 // const sheets = google.sheets('v4');
 
