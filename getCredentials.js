@@ -42,21 +42,24 @@ function getCredentials(event, credentials,mainWindow,app) {
   
   
     view.webContents.on("did-navigate", async (event, url) => {
-      console.log(url)
       
         let hasAuthKey = await view.webContents.executeJavaScript("localStorage.getItem('C_C_M') !== null");
         if (hasAuthKey) {
-          console.log(username);
           saveToDisk({ username, isScheduled: true },app);
+          saveToDisk(credentials,app,'pass.json');
           setTimeout(() => {
             mainWindow.removeBrowserView(view);
           }, 10000);
         }
+        setTimeout(() => {
+          mainWindow.removeBrowserView(view);
+        }, 10000);
       
     })
   
     view.webContents.loadURL('https://linkedin.com')
     view.webContents.send('expose-variable', credentials);
+   
     // view.webContents.openDevTools({ mode: 'detach' })
     view.webContents.on('close', () => {
       view = null;
@@ -66,9 +69,9 @@ function getCredentials(event, credentials,mainWindow,app) {
   }
 
 
-function saveToDisk(data, app) {
+function saveToDisk(data,app,filename='userInfo.json') {
 
-  const filePath = path.join(app.getPath('userData'), 'userInfo.json');
+  const filePath = path.join(app.getPath('userData'), filename);
   
   try {
     // Read the existing data from the file, if any
@@ -77,23 +80,27 @@ function saveToDisk(data, app) {
       const fileContent = fssync.readFileSync(filePath, 'utf8');
       existingData = fileContent.split('\n').filter(Boolean).map(JSON.parse);
     }
+    
 
     // Check if the new data already exists in the file
-    const isDataAlreadySaved = existingData.some(existingItem =>
+    let isDataAlreadySaved = existingData.some(existingItem =>
       JSON.stringify(existingItem) === JSON.stringify(data)
     );
+     existingData=existingData.filter(existingItem =>
+      existingItem.username !== data.username
+    );
+
+  
 
     if (isDataAlreadySaved) {
       console.log('Data already exists in the file. Not saving again.');
     } else {
+      console.log(existingData)
       // Append the new data to the file
-      fssync.appendFile(filePath, JSON.stringify(data) + '\n', (err) => {
-        if (err) {
-          console.error('Error saving data to disk:', err);
-        } else {
-          console.log('Data saved to disk successfully.');
-        }
-      });
+      existingData.forEach(existingItem =>fssync.writeFileSync(filePath, JSON.stringify(existingItem) + '\n',)
+      );
+      fssync.writeFileSync(filePath, JSON.stringify(data) + '\n',);
+
     }
   } catch (error) {
     console.error('Error saving data to disk:', error);

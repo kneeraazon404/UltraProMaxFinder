@@ -44,7 +44,7 @@ function getSavedTemplate(app,filename='template.json'){
    const filePath = path.join(app.getPath('userData'), filename);
    let success=true;
    try {
-    data = data.split('\n').join(os.EOL)
+    data = data.split(os.EOL).join('\n')
      await fs.writeFile(filePath, data);
    } catch (error) {
      console.log(error);
