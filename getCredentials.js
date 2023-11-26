@@ -51,9 +51,9 @@ function getCredentials(event, credentials,mainWindow,app) {
             mainWindow.removeBrowserView(view);
           }, 10000);
         }
-        setTimeout(() => {
-          mainWindow.removeBrowserView(view);
-        }, 10000);
+        // setTimeout(() => {
+        //   mainWindow.removeBrowserView(view);
+        // }, 10000);
       
     })
   
