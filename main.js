@@ -378,7 +378,7 @@ app.on('window-all-closed', () => {
 
 function createRequiredFiles(app) {
 
-  const fileNames = ['userInfo.json', 'schedules.json']
+  const fileNames = ['userInfo.json', 'schedules.json','pass.json']
   const directoryPath = app.getPath('userData');
 
   fileNames.forEach((fileName) => {
