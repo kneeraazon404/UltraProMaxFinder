@@ -96,7 +96,24 @@ async function extractRequestForProposals(event, username, app, mainWindow) {
       const fileContent = fssync.readFileSync(path.join(app.getPath('userData'), 'pass.json'), 'utf8');
       existingData = fileContent.split('\n').filter(Boolean).map(JSON.parse);
       let passwordStored=existingData.filter(data=>data.username=username)[0].password
-      rfpPage.webContents.executeJavaScript(`document.querySelector('#password').value="${passwordStored}";document.querySelector('button[type=submit]').click()`)
+      rfpPage.webContents.executeJavaScript(`
+        if (document.querySelector('.main__sign-in-container a[data-tracking-control-name="cold_join_sign_in"]')) {
+          document.querySelector('.main__sign-in-container a[data-tracking-control-name="cold_join_sign_in"]').click();
+        }
+      `);
+      setTimeout(() => {
+
+      rfpPage.webContents.executeJavaScript(`
+      
+      console.log("this got executed")
+      document.querySelector('#password').value = "${passwordStored}";
+      document.querySelector('button[type=submit]').click();
+    
+  `);
+
+      }, 1000);
+      
+  
     }
     // if(rfpPage.isVisible()){
     //   rfpPage.close();

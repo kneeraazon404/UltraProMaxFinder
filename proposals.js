@@ -115,8 +115,10 @@ finally{
   if(page.isClosable())
   page.close()
   if (browser) {
-    await context.close();
-    await browser.close()
+    setTimeout(async() => {
+      await context.close();
+      await browser.close();
+    },10000);
     console.log('Browser closed.');
   }
 }
@@ -184,7 +186,9 @@ try {
     savedMessage = savedMessage.replace(/<first_name>|\(first_name\)/g, creatorName.split(' ')[0] ?? creatorName)
     await messageBox.fill(savedMessage)
   }
-  await messagePage.getByRole('button', { name: "Send", exact: true }).click()
+  let sendButton=  messagePage.getByRole('button', { name: "Send", exact: true });
+  await sendButton.scrollIntoViewIfNeeded();
+  await sendButton.click()
 
   // let updatedCookies=await context.cookies();
  
