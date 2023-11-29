@@ -135,68 +135,65 @@ finally{
 }
 
 
-async function submitMessageAndProposal(browser, context, messagePage, app, jobType, urnId, creatorName, session,page) {
-
-
-try {
-  const element = await messagePage.waitForSelector('css=li-icon[type="chevron-down"]',{
-    timeout:10000,
-  });
-  if (element) {
-    await element.click();
+async function submitMessageAndProposal(browser, context, messagePage, app, jobType, urnId, creatorName, session, page) {
+  try {
+    const element = await messagePage.waitForSelector('css=li-icon[type="chevron-down"]',{
+      timeout: 10000,
+    });
+    if (element) {
+      await element.click();
+    }
+  } catch (error) {
+    console.log("Error:", error.message);
   }
-} catch (error) {
-  console.log("Error:",error.message)
-  
-}
+
   await messagePage.getByRole('button', { name: "Submit proposal" }).click();
 
-
-
-
+  // Wait for some time after clicking
   setTimeout(async () => {
-  }, 5000)
+    // ... other actions if needed
+  }, 5000);
 
-  // await messagePage.waitForSelector('li-icon[type="chevron-down"]');
-  // await messagePage.click('::-p-xpath(.//button//span[text()="Submit proposal"])');
-  let textToType = getSavedTemplate(app, 'template.json')[jobType.toLowerCase()] ?? getSavedTemplate(app,)['default'];
+  // Get the text to type from the template
+  let textToType = getSavedTemplate(app, 'template.json')[jobType.toLowerCase()] ?? getSavedTemplate(app, 'default');
+  textToType = textToType.replace(/<first_name>|\(first_name\)/g, creatorName.split(' ')[0] ?? creatorName);
 
-
-  textToType = textToType.replace(/<first_name>|\(first_name\)/g, creatorName.split(' ')[0] ?? creatorName)
-
-  // try {
   let textArea = await messagePage.locator('textarea');
-  await textArea.waitFor({ state: "attached" })
+  await textArea.waitFor({ state: "attached" });
+  await textArea.fill(textToType);
 
-  textArea.fill(textToType)
-  setTimeout(() => { }, 5000);
+  // Wait before clicking the submit button
+  setTimeout(() => {}, 5000);
 
   let submitButton = await messagePage.locator("button[data-test-proposal-submission-modal__submit-button]");
   await submitButton.waitFor();
   await submitButton.click();
-  setTimeout(() => { }, 5000);
-  await messagePage.getByRole('button', { name: "Message" }).click()
+
+  // Wait after submitting the proposal
+  setTimeout(() => {}, 5000);
+
+  await messagePage.getByRole('button', { name: "Message" }).click();
+
+  // Prepare the direct message
   let savedMessage = getSavedTemplate(app, 'messageTemplate.txt');
-
-  let messageBox = await messagePage.locator('.msg-form__contenteditable')
-  messageBox.waitFor({ state: "attached" })
-  // setTimeout(() => { }, 5000);
-
-  if (savedMessage != null || savedMessage != '') {
-    savedMessage = savedMessage.replace(/<first_name>|\(first_name\)/g, creatorName.split(' ')[0] ?? creatorName)
-    await messageBox.fill(savedMessage)
+  if (savedMessage) {
+    // Replace <first_name> dynamically in the direct message
+    savedMessage = savedMessage.replace(/<first_name>|\(first_name\)/g, creatorName.split(' ')[0] ?? creatorName);
+    
+    let messageBox = await messagePage.locator('.msg-form__contenteditable');
+    await messageBox.waitFor({ state: "attached" });
+    await messageBox.fill(savedMessage);
   }
-  let sendButton=  messagePage.getByRole('button', { name: "Send", exact: true });
+
+  // Send the message
+  let sendButton = await messagePage.getByRole('button', { name: "Send", exact: true });
   await sendButton.scrollIntoViewIfNeeded();
-  await sendButton.click()
+  await sendButton.click();
 
-  // let updatedCookies=await context.cookies();
- 
-
-  // updateCookiesPlaytoElectron(session,updatedCookies)
-  await messagePage.close()
-  
+  // Close the message page after sending the message
+  await messagePage.close();
 }
+
 
 
 
