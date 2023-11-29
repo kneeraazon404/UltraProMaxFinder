@@ -135,18 +135,18 @@ finally{
 }
 
 
-async function submitMessageAndProposal(browser, context, messagePage, app, jobType, urnId, creatorName, session, page) {
-  try {
-    const element = await messagePage.waitForSelector('css=li-icon[type="chevron-down"]',{
-      timeout: 10000,
-    });
-    if (element) {
-      await element.click();
-    }
-  } catch (error) {
-    console.log("Error:", error.message);
-  }
+async function submitMessageAndProposal(browser, context, messagePage, app, jobType, urnId, creatorName, session,page) {
 
+
+try {
+  const element = messagePage.locator('css=li-icon[type="chevron-down"]');
+        if (element) {
+          await element.click();
+        }
+} catch (error) {
+  console.log("Error:",error.message)
+  
+}
   await messagePage.getByRole('button', { name: "Submit proposal" }).click();
 
   // Wait for some time after clicking
