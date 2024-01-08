@@ -4,6 +4,9 @@
             <h3 class="h3">PROPOSAL CATEGORY</h3>
             <label for="text">Enter JOB CATEGORY for proposal:</label>
             <textarea class="form-control" id="templateTitle"  required rows="30" cols="30" aria-label="With textarea" placeholder="Enter title"></textarea> 
+            <br/>
+            <label for="text">Enter JOB SUB-CATEGORY for proposal:</label>
+            <textarea class="form-control" id="templateSubtitle"   rows="30" cols="30" aria-label="With textarea" placeholder="Enter sub-title"></textarea> 
         </div>
         <div style="margin-top: 1rem;"></div>
         <div class="form-group">
@@ -19,6 +22,8 @@
     <div>
         <label for="template">Choose Saved Template by Title:</label>
         <select name="template" class="form-select" id="savedTemplate"></select>
+        <select id="subDropdown" style="display: none;">
+        </select>
         <h3 class="h3">Saved Template</h3>
         <p id="savedTemplateText"></p>
         <div style="margin-bottom: 1rem;">

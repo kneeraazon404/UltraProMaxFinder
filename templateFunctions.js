@@ -24,21 +24,40 @@ function getSavedTemplate(app,filename='template.json'){
  
  
  async function saveTemplateToFile(event,data,app,filename='template.json'){
-  if(filename==='template.json'){
+  if (filename === 'template.json') {
     const filePath = path.join(app.getPath('userData'), filename);
+    
+    // Ensure the file exists
     if (!fssync.existsSync(filePath)) {
       fssync.writeFileSync(filePath, '{}', 'utf-8');
     }
-    let jsonFile=await fs.readFile(filePath);
-    var templates = JSON.parse(jsonFile)??{};
-    templates[data.title.toLowerCase()]=data.data;
-    let success=true;
+
+    let jsonFile = await fs.readFile(filePath);
+    var templates = JSON.parse(jsonFile) || {};
+
+    const titleKey = data.title.toLowerCase();
+
+    if (data.content.subtitle != '') {
+      if (typeof templates[titleKey] === 'string') {
+        templates[titleKey] = { default: templates[titleKey] };
+      }
+      if (!templates[titleKey][data.content.subtitle]) {
+        templates[titleKey][data.content.subtitle] = {};
+      }
+      templates[titleKey][data.content.subtitle] = data.content.data;
+    } else {
+      if (typeof templates[titleKey] === 'object' && templates[titleKey].default) {
+        templates[titleKey] = data.content.data;
+      } 
+    }
+    let success = true;
     try {
-      await fs.writeFile(filePath, JSON.stringify(templates));
+      await fs.writeFile(filePath, JSON.stringify(templates, null, 2));
     } catch (error) {
       console.log(error);
-      success=false; 
+      success = false;
     }
+    
     return success;
   }else{
    const filePath = path.join(app.getPath('userData'), filename);

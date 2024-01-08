@@ -39,16 +39,28 @@ proposalPage.addEventListener('click', async () => {
   let excelURL=await window.electronAPI.readTemplateText('excelUrl.txt');
   let textMessage=await window.electronAPI.readTemplateText('messageTemplate.txt');
   let selectElement=document.querySelector('#savedTemplate');
-  console.log(selectElement)
-  selectElement.addEventListener('change',(event)=>{
+  let subDropdown = document.querySelector('#subDropdown');
+
+
+  subDropdown.addEventListener('change',(event)=>{
     templateInput.textContent=event.target.value;
+  })
+  selectElement.addEventListener('change',(event)=>{
+    if (typeof textArr[event.target.value] === 'object') {
+      subDropdown.style.display = 'block';
+      populateSubDropdown(textArr[event.target.value]);
+  } else {
+      subDropdown.style.display = 'none';
+      templateInput.textContent=event.target.value;
+  }
   })
   if(Object.keys(textArr).length !== 0){
     Object.keys(textArr).forEach((templateTitle,index)=>{
     const optionElement = document.createElement('option');
-    optionElement.text = templateTitle.toLowerCase();
-    optionElement.value = textArr[templateTitle];
+    optionElement.text = templateTitle;
+    optionElement.value = templateTitle.toLowerCase();
     selectElement.add(optionElement);
+ 
     if(index===0)
     templateInput.innerHTML=textArr[templateTitle];
     })
@@ -61,6 +73,19 @@ proposalPage.addEventListener('click', async () => {
 
   }
 });
+
+
+
+function populateSubDropdown(data) {
+  subDropdown.innerHTML = ''; // Clear existing options
+console.log('this is fucking data',data)
+  for (const key in data) {
+      let option = document.createElement('option');
+      option.value = data[key];
+      option.textContent = key;
+      subDropdown.appendChild(option);
+  }
+}
 
 accountListPage.addEventListener('click', getAccountList);
 
@@ -80,8 +105,10 @@ document.addEventListener('submit',async (event) => {
   if (event.target.id == 'textInputForm') {
     event.preventDefault();
     let templateTitle=document.getElementById('templateTitle').value;
+    let templateSubTitle=document.getElementById('templateSubtitle')?.value??'';
+    console.log('this is subtitlel',templateSubTitle);
     let data = document.getElementById('templatetext').value;
-    isSuccessful=await window.electronAPI.saveTemplate({title:templateTitle,data})
+    isSuccessful=await window.electronAPI.saveTemplate({title:templateTitle,content:{subtitle:templateSubTitle,data}})
     if(isSuccessful){
       alert("Template Saved Successfully");
       proposalPage.click();
