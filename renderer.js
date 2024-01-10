@@ -58,7 +58,11 @@ proposalPage.addEventListener('click', async () => {
     Object.keys(textArr).forEach((templateTitle,index)=>{
     const optionElement = document.createElement('option');
     optionElement.text = templateTitle;
-    optionElement.value = templateTitle.toLowerCase();
+    if (typeof textArr[templateTitle] === 'object'){
+
+      optionElement.value = templateTitle.toLowerCase();
+    }else
+    optionElement.value = textArr[templateTitle];
     selectElement.add(optionElement);
  
     if(index===0)
@@ -169,13 +173,21 @@ document.addEventListener('click', async (event) => {
   }
   if(event.target.id==='updateTemplate'){
     let selectElement=document.querySelector('#savedTemplate');
+    document.getElementById('templateSubtitle').value='';
+    let textArr=await window.electronAPI.readTemplateText();
     if(selectElement.options.length===0){
       alert("No Saved Template Found");
       return;
     }
     document.getElementById('templateTitle').disabled=true;
+    document.getElementById('templateSubtitle').disabled=true;
     document.getElementById('templateTitle').value=selectElement.options[selectElement.selectedIndex].text;
-    document.getElementById('templatetext').value=selectElement.value;
+    if (typeof textArr[selectElement.value] === 'object') {
+
+      document.getElementById('templatetext').value=subDropdown.value;
+      document.getElementById('templateSubtitle').value=subDropdown.options[subDropdown.selectedIndex].text;
+    }else
+    document.getElementById('templatetext').value=selectElement.value==selectElement.options[selectElement.selectedIndex].text?textArr[selectElement.value]:selectElement.value;
   }
   if(event.target.id==='updateMessageTemplate'){
     let message=document.querySelector('#savedMessageContent');
@@ -202,10 +214,17 @@ document.addEventListener('click', async (event) => {
   }
   if(event.target.id=='deleteTemplate'){
     let selectElement=document.querySelector('#savedTemplate');
+    let textArr=await window.electronAPI.readTemplateText();
     if(selectElement.options.length===0){
       alert("No Saved Template Found");
       return;
     }
+    if ((typeof textArr[selectElement.value] === 'object')&& Object.keys(textArr[selectElement.value]).length > 0) {
+      var selectedOption = subDropdown.options[subDropdown.selectedIndex].text;
+      // document.getElementById('templatetext').value=subDropdown.value;
+      // document.getElementById('templateSubtitle').value=subDropdown.options[subDropdown.selectedIndex].text;
+    }
+    else
     var selectedOption = selectElement.options[selectElement.selectedIndex].text;
     var result = confirm(`Are you sure to delete ${selectedOption} ?`);
     if(result){

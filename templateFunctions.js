@@ -83,7 +83,15 @@ function getSavedTemplate(app,filename='template.json'){
     }
     let jsonFile=await fs.readFile(filePath);
     var templates = JSON.parse(jsonFile)??{};
-    delete templates[keyName];
+    if (templates.hasOwnProperty(keyName)) {
+      delete templates[keyName];
+  } else {
+      for (let prop in templates) {
+          if (typeof templates[prop] === 'object' && templates[prop].hasOwnProperty(keyName)) {
+              delete templates[prop][keyName];
+          }
+      }
+  }
     let success=true;
     try {
       await fs.writeFile(filePath, JSON.stringify(templates));
